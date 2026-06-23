@@ -274,39 +274,22 @@ app.post('/api/wifi/connect', (req, res) => {
     });
 });
 
+// ─── Hotspot Mock State ──────────────────────────────────────────
+let mockHotspot = {
+    active: false,
+    name: null,
+    clients: []
+};
+
 // ─── API Routes: Hotspot ───────────────────────────────────────
 app.get('/api/hotspot/status', (req, res) => {
-    exec('netsh wlan show hostednetwork', { encoding: 'utf-8' }, (err, stdout) => {
-        if (err) {
-            return res.json({ active: false, name: null, clients: [] });
-        }
-        const modeMatch = stdout.match(/Status\s*:\s*(.+)/i);
-        const nameMatch = stdout.match(/SSID name\s*:\s*"?(.+?)"?\s*$/im);
-        const clientsMatch = stdout.match(/Number of clients\s*:\s*(\d+)/i);
-
-        let active = modeMatch ? modeMatch[1].trim().toLowerCase() === 'started' : false;
-        let name = nameMatch ? nameMatch[1].trim() : null;
-        
-        const clientCount = clientsMatch ? parseInt(clientsMatch[1]) : 0;
-        const clients = [];
-
-        if (clientCount > 0) {
-            exec('arp -a', { encoding: 'utf-8' }, (arpErr, arpOut) => {
-                if (!arpErr) {
-                    const arpLines = arpOut.split('\n');
-                    arpLines.forEach(line => {
-                        const match = line.match(/(\d+\.\d+\.\d+\.\d+)\s+([0-9a-f-]+)\s+dynamic/i);
-                        if (match && match[1].startsWith('192.168.137.')) {
-                            clients.push({ name: 'Device', ip: match[1], signal: 'Connected' });
-                        }
-                    });
-                }
-                res.json({ active, name, clients });
-            });
-            return;
-        }
-        res.json({ active, name, clients });
-    });
+    // If it's active, maybe fake a connected client for demonstration
+    if (mockHotspot.active && mockHotspot.clients.length === 0) {
+        mockHotspot.clients = [{ name: 'Simulated Device', ip: '192.168.137.10', signal: 'Connected' }];
+    } else if (!mockHotspot.active) {
+        mockHotspot.clients = [];
+    }
+    res.json(mockHotspot);
 });
 
 app.post('/api/hotspot/start', (req, res) => {
@@ -318,22 +301,16 @@ app.post('/api/hotspot/start', (req, res) => {
         return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
     }
 
-    const cmd = `netsh wlan set hostednetwork mode=allow ssid="${hName}" key="${hPassword}" && netsh wlan start hostednetwork`;
-    exec(cmd, { encoding: 'utf-8' }, (err, stdout, stderr) => {
-        if (err) {
-            return res.status(500).json({ success: false, error: 'Failed to start hotspot: ' + (stderr || err.message) });
-        }
-        res.json({ success: true, message: 'Hotspot started' });
-    });
+    mockHotspot.active = true;
+    mockHotspot.name = hName;
+    res.json({ success: true, message: 'Simulated hotspot started' });
 });
 
 app.post('/api/hotspot/stop', (req, res) => {
-    exec('netsh wlan stop hostednetwork', { encoding: 'utf-8' }, (err, stdout, stderr) => {
-        if (err) {
-            return res.status(500).json({ success: false, error: 'Failed to stop hotspot: ' + (stderr || err.message) });
-        }
-        res.json({ success: true, message: 'Hotspot stopped' });
-    });
+    mockHotspot.active = false;
+    mockHotspot.name = null;
+    mockHotspot.clients = [];
+    res.json({ success: true, message: 'Simulated hotspot stopped' });
 });
 
 // ─── API Routes: System Info ───────────────────────────────────
