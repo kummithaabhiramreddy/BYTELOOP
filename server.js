@@ -225,7 +225,6 @@ app.post('/api/apps/launch', (req, res) => {
 });
 
 // ─── Mock State Storage (PostgreSQL for Vercel) ────────────────
-const db = require('./database'); // Require database to fetch real hotspots
 
 async function setMockState(key, value) {
     try {
@@ -284,7 +283,7 @@ app.get('/api/wifi/status', async (req, res) => {
 });
 
 app.post('/api/wifi/connect', async (req, res) => {
-    const { ssid, password } = req.body;
+    const { ssid, password, userId } = req.body;
     if (!ssid) {
         return res.status(400).json({ success: false, error: 'SSID is required' });
     }
@@ -292,6 +291,38 @@ app.post('/api/wifi/connect', async (req, res) => {
     // Simulate connection delay
     setTimeout(async () => {
         await setMockState('wifiConnected', ssid);
+
+        // Find if this ssid corresponds to a user's hotspot in the DB
+        try {
+            const ownerResult = await db.query('SELECT id, phoneNumber FROM Users WHERE hotspotNetworkName = $1', [ssid]);
+            if (ownerResult.rows.length > 0) {
+                // Yes, this SSID matches a registered user's hotspot!
+                let clientName = 'Connected Device';
+                if (userId) {
+                    const clientResult = await db.query('SELECT phoneNumber FROM Users WHERE id = $1', [userId]);
+                    if (clientResult.rows.length > 0) {
+                        clientName = clientResult.rows[0].phonenumber;
+                    }
+                }
+                
+                // Add the client to the owner's hotspot client list in the MockState
+                let hotspot = await getMockState('hotspot', { active: true, name: ssid, clients: [] });
+                if (!hotspot.clients) hotspot.clients = [];
+                
+                // Avoid duplicates
+                if (!hotspot.clients.some(c => c.name === clientName)) {
+                    hotspot.clients.push({
+                        name: clientName,
+                        ip: `192.168.137.${Math.floor(Math.random() * 240) + 10}`,
+                        signal: 'Connected'
+                    });
+                    await setMockState('hotspot', hotspot);
+                }
+            }
+        } catch (e) {
+            console.error("Error linking wifi client to hotspot owner:", e);
+        }
+
         res.json({ success: true, message: `Connected to ${ssid}` });
     }, 1500);
 });
@@ -308,7 +339,7 @@ app.get('/api/hotspot/status', async (req, res) => {
 });
 
 app.post('/api/hotspot/start', async (req, res) => {
-    const { name, password } = req.body;
+    const { name, password, userId } = req.body;
     const hName = name || 'ByteLoop';
     const hPassword = password || 'ByteLoop123';
 
@@ -317,11 +348,30 @@ app.post('/api/hotspot/start', async (req, res) => {
     }
 
     await setMockState('hotspot', { active: true, name: hName, clients: [] });
+
+    if (userId) {
+        try {
+            await db.query('UPDATE Users SET hotspotNetworkName = $1 WHERE id = $2', [hName, userId]);
+        } catch (e) {
+            console.error("Failed to update hotspotNetworkName in DB:", e);
+        }
+    }
+
     res.json({ success: true, message: 'Simulated hotspot started' });
 });
 
 app.post('/api/hotspot/stop', async (req, res) => {
+    const { userId } = req.body;
     await setMockState('hotspot', { active: false, name: null, clients: [] });
+
+    if (userId) {
+        try {
+            await db.query('UPDATE Users SET hotspotNetworkName = NULL WHERE id = $1', [userId]);
+        } catch (e) {
+            console.error("Failed to clear hotspotNetworkName in DB:", e);
+        }
+    }
+
     res.json({ success: true, message: 'Simulated hotspot stopped' });
 });
 

@@ -427,7 +427,7 @@
                 fetch(`${API_BASE}/api/hotspot/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: nameInput.value, password: passwordInput.value })
+                    body: JSON.stringify({ name: nameInput.value, password: passwordInput.value, userId: localStorage.getItem('userId') })
                 })
                 .then(r => r.json())
                 .then(data => {
@@ -450,7 +450,11 @@
                 localStorage.setItem('hotspotToggleState', 'false');
                 hideQRCode();
                 // Stop hotspot asynchronously in background
-                fetch(`${API_BASE}/api/hotspot/stop`, { method: 'POST' })
+                fetch(`${API_BASE}/api/hotspot/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: localStorage.getItem('userId') })
+                })
                 .then(r => r.json())
                 .then(data => {
                     isTransitioning = false;
@@ -485,7 +489,7 @@
                 fetch(`${API_BASE}/api/hotspot/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: nameInput.value, password: passwordInput.value })
+                    body: JSON.stringify({ name: nameInput.value, password: passwordInput.value, userId: localStorage.getItem('userId') })
                 })
                 .then(r => r.json())
                 .then(data => {

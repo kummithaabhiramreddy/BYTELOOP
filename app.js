@@ -255,12 +255,7 @@ function updateUI() {
     btnHotspot.classList.toggle('active', state.hotspot);
     btnApps.classList.toggle('active', state.apps);
 
-    if (!state.appInternet) {
-        appGrid.style.display = 'none';
-        searchContainer.style.display = 'none';
-        statusMessage.style.display = 'flex';
-        statusMessage.innerHTML = '<div class="status-icon-wrapper"><i class="ph ph-warning-circle"></i></div><h2>Data Flow Restricted</h2><p id="status-subtext">App internet is required to sync and display device applications.</p>';
-    } else if (!state.apps) {
+    if (!state.apps) {
         appGrid.style.display = 'none';
         searchContainer.style.display = 'none';
         statusMessage.style.display = 'flex';
@@ -282,7 +277,7 @@ function updateUI() {
 }
 
 function pollApps() {
-    if (!state.appInternet || !state.apps) return;
+    if (!state.apps) return;
 
     fetch(`${API_BASE}/api/apps`)
         .then(res => {
@@ -294,7 +289,7 @@ function pollApps() {
             return res.json();
         })
         .then(data => {
-            if (data && state.appInternet && state.apps) {
+            if (data && state.apps) {
                 allAppsData = data;
                 statusMessage.style.display = 'none';
                 appGrid.style.display = 'grid';
