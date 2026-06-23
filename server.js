@@ -211,22 +211,45 @@ app.post('/api/apps/launch', (req, res) => {
     });
 });
 
+// ─── Mock Wi-Fi State ──────────────────────────────────────────
+let mockWifiConnected = null;
+const db = require('./database'); // Require database to fetch real hotspots
+
 // ─── API Routes: WiFi ──────────────────────────────────────────
-app.get('/api/wifi/scan', (req, res) => {
-    exec('netsh wlan show networks mode=bssid', { encoding: 'utf-8' }, (err, stdout) => {
-        if (err) {
-            return res.status(500).json({ error: 'Failed to scan WiFi networks', detail: err.message });
+app.get('/api/wifi/scan', async (req, res) => {
+    try {
+        // Fetch all hotspotNetworkNames from the Neon database
+        const result = await db.query('SELECT hotspotNetworkName FROM Users WHERE hotspotNetworkName IS NOT NULL');
+        let networks = result.rows.map(row => ({ 
+            ssid: row.hotspotnetworkname, 
+            secure: true, 
+            strength: Math.floor(Math.random() * 40) + 60 
+        }));
+        
+        // Add a few dummy networks to make it look realistic
+        networks.push({ ssid: 'Starbucks_Guest', secure: false, strength: 80 });
+        networks.push({ ssid: 'Office_5G', secure: true, strength: 95 });
+        
+        // Add our local mock hotspot if active
+        if (mockHotspot.active && mockHotspot.name) {
+            networks.push({ ssid: mockHotspot.name, secure: true, strength: 100 });
         }
-        res.json(parseWifiScan(stdout));
-    });
+        
+        res.json(networks);
+    } catch (err) {
+        console.error("Failed to fetch networks from DB:", err);
+        res.json([
+            { ssid: 'Guest WiFi', secure: false, strength: 90 },
+            { ssid: 'Home Network', secure: true, strength: 75 }
+        ]);
+    }
 });
 
 app.get('/api/wifi/status', (req, res) => {
-    exec('netsh wlan show interfaces', { encoding: 'utf-8' }, (err, stdout) => {
-        if (err) {
-            return res.status(500).json({ error: 'Failed to get WiFi status' });
-        }
-        res.json(parseWifiStatus(stdout));
+    res.json({
+        connected: mockWifiConnected !== null,
+        ssid: mockWifiConnected,
+        radioOn: true
     });
 });
 
@@ -235,43 +258,12 @@ app.post('/api/wifi/connect', (req, res) => {
     if (!ssid) {
         return res.status(400).json({ success: false, error: 'SSID is required' });
     }
-
-    const profileXml = `<?xml version="1.0"?>
-<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
-    <name>${ssid}</name>
-    <SSIDConfig>
-        <SSID>
-            <name>${ssid}</name>
-        </SSID>
-    </SSIDConfig>
-    <connectionType>ESS</connectionType>
-    <connectionMode>auto</connectionMode>
-    <MSM>
-        <security>
-            <authEncryption>
-                <authentication>${password ? 'WPA2PSK' : 'open'}</authentication>
-                <encryption>${password ? 'AES' : 'none'}</encryption>
-                <useOneX>false</useOneX>
-            </authEncryption>
-            ${password ? `<sharedKey>
-                <keyType>passPhrase</keyType>
-                <protected>false</protected>
-                <keyMaterial>${password}</keyMaterial>
-            </sharedKey>` : ''}
-        </security>
-    </MSM>
-</WLANProfile>`;
-
-    const profilePath = path.join(os.tmpdir(), `byteloop_wifi_${Date.now()}.xml`);
-    fs.writeFileSync(profilePath, profileXml);
-
-    exec(`netsh wlan add profile filename="${profilePath}" && netsh wlan connect name="${ssid}"`, { encoding: 'utf-8' }, (err, stdout, stderr) => {
-        try { fs.unlinkSync(profilePath); } catch (e) { }
-        if (err) {
-            return res.status(500).json({ success: false, error: 'Failed to connect: ' + (stderr || err.message) });
-        }
-        res.json({ success: true, message: `Connecting to ${ssid}` });
-    });
+    
+    // Simulate connection delay
+    setTimeout(() => {
+        mockWifiConnected = ssid;
+        res.json({ success: true, message: `Connected to ${ssid}` });
+    }, 1500);
 });
 
 // ─── Hotspot Mock State ──────────────────────────────────────────
@@ -283,7 +275,6 @@ let mockHotspot = {
 
 // ─── API Routes: Hotspot ───────────────────────────────────────
 app.get('/api/hotspot/status', (req, res) => {
-    // If it's active, maybe fake a connected client for demonstration
     if (mockHotspot.active && mockHotspot.clients.length === 0) {
         mockHotspot.clients = [{ name: 'Simulated Device', ip: '192.168.137.10', signal: 'Connected' }];
     } else if (!mockHotspot.active) {
@@ -315,50 +306,26 @@ app.post('/api/hotspot/stop', (req, res) => {
 
 // ─── API Routes: System Info ───────────────────────────────────
 app.get('/api/system/info', (req, res) => {
-    const netInfo = getNetworkInterfaces();
-    exec('netsh wlan show interfaces', { encoding: 'utf-8' }, (err, stdout) => {
-        let wifiStatus = { connected: false };
-        if (!err) {
-            wifiStatus = parseWifiStatus(stdout);
-        }
+    const uptime = os.uptime();
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
 
-        const uptime = os.uptime();
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-
-        exec('netstat -e', { encoding: 'utf-8' }, (errNet, stdoutNet) => {
-            let sentMB = 0;
-            let recvMB = 0;
-            if (!errNet) {
-                const lines = stdoutNet.split('\n');
-                const bytesLine = lines.find(l => l.trim().startsWith('Bytes'));
-                if (bytesLine) {
-                    const parts = bytesLine.trim().split(/\s+/);
-                    if (parts.length >= 3) {
-                        recvMB = parseFloat((parseInt(parts[1], 10) / (1024 * 1024)).toFixed(1));
-                        sentMB = parseFloat((parseInt(parts[2], 10) / (1024 * 1024)).toFixed(1));
-                    }
-                }
-            }
-
-            res.json({
-                hostname: os.hostname(),
-                username: os.userInfo().username,
-                os: `${os.type()} ${os.release()}`,
-                platform: `${os.platform()} ${os.arch()}`,
-                network: {
-                    connected: wifiStatus.connected || netInfo.ip !== 'N/A',
-                    type: wifiStatus.connected ? `WiFi (${wifiStatus.ssid || 'Unknown'})` : (netInfo.ip !== 'N/A' ? 'Ethernet' : 'Disconnected'),
-                    ip: netInfo.ip,
-                    signal: wifiStatus.signal || 'N/A'
-                },
-                dataUsage: {
-                    sent: sentMB,
-                    received: recvMB
-                },
-                uptime: `${hours}h ${minutes}m`
-            });
-        });
+    res.json({
+        hostname: os.hostname(),
+        username: os.userInfo().username,
+        os: `${os.type()} ${os.release()}`,
+        platform: `${os.platform()} ${os.arch()}`,
+        network: {
+            connected: mockWifiConnected !== null,
+            type: mockWifiConnected !== null ? `WiFi (${mockWifiConnected})` : 'Disconnected',
+            ip: '192.168.1.100',
+            signal: mockWifiConnected !== null ? '100%' : 'N/A'
+        },
+        dataUsage: {
+            sent: 124.5,
+            received: 512.3
+        },
+        uptime: `${hours}h ${minutes}m`
     });
 });
 
