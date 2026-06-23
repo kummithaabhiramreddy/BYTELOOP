@@ -72,6 +72,12 @@ let isFetching = false;
 
 function fetchAppsData() {
     if (isFetching) return;
+    if (os.platform() !== 'win32') {
+        console.log("Not running on Windows (Vercel). Using fallback apps instantly.");
+        cachedApps = FALLBACK_APPS;
+        return;
+    }
+    
     isFetching = true;
     console.log("Fetching and caching Windows apps (this takes a few seconds)...");
 
@@ -192,6 +198,13 @@ app.post('/api/apps/launch', (req, res) => {
     }
 
     console.log(`Launching application with AppID: ${appId}`);
+    
+    // If running on Vercel (Linux), simulate the launch since we can't open Windows apps from the cloud
+    if (os.platform() !== 'win32') {
+        console.log(`Mock launch on Vercel for ${appId}`);
+        return res.json({ success: true, message: `Simulated app launch (${appId}) on cloud server.` });
+    }
+
     const cmdShell = `cmd.exe /c start "" "shell:AppsFolder\\${appId}"`;
     const cmdDirect = `cmd.exe /c start "" "${appId}"`;
 

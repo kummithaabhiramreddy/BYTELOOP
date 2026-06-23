@@ -517,3 +517,21 @@ a {
     to { transform: translateX(-50%) translateY(100px); opacity: 0; }
 }
 
+/* Mobile Responsive Fixes */
+@media (max-width: 450px) {
+    .header {
+        padding: 1.5rem 1rem;
+    }
+    .header-actions {
+        gap: 0.5rem;
+    }
+    .icon-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+    }
+    .logo-section span {
+        display: none; /* Hide 'ByteLoop' text on small phones to make room for icons */
+    }
+}
+
