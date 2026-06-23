@@ -211,9 +211,25 @@ app.post('/api/apps/launch', (req, res) => {
     });
 });
 
-// ─── Mock Wi-Fi State ──────────────────────────────────────────
-let mockWifiConnected = null;
+// ─── Mock State Storage (PostgreSQL for Vercel) ────────────────
 const db = require('./database'); // Require database to fetch real hotspots
+
+async function setMockState(key, value) {
+    try {
+        await db.query(`
+            INSERT INTO MockState (key, value) VALUES ($1, $2)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+        `, [key, JSON.stringify(value)]);
+    } catch(e) { console.error("setMockState error", e); }
+}
+
+async function getMockState(key, defaultVal) {
+    try {
+        const res = await db.query('SELECT value FROM MockState WHERE key = $1', [key]);
+        if (res.rows.length > 0) return res.rows[0].value;
+    } catch(e) { console.error("getMockState error", e); }
+    return defaultVal;
+}
 
 // ─── API Routes: WiFi ──────────────────────────────────────────
 app.get('/api/wifi/scan', async (req, res) => {
@@ -226,64 +242,59 @@ app.get('/api/wifi/scan', async (req, res) => {
             strength: Math.floor(Math.random() * 40) + 60 
         }));
         
-        // Add a few dummy networks to make it look realistic
+        // Add a few dummy networks
         networks.push({ ssid: 'Starbucks_Guest', secure: false, strength: 80 });
         networks.push({ ssid: 'Office_5G', secure: true, strength: 95 });
         
         // Add our local mock hotspot if active
-        if (mockHotspot.active && mockHotspot.name) {
-            networks.push({ ssid: mockHotspot.name, secure: true, strength: 100 });
+        let hotspot = await getMockState('hotspot', { active: false, name: null });
+        if (hotspot.active && hotspot.name) {
+            networks.push({ ssid: hotspot.name, secure: true, strength: 100 });
         }
         
         res.json(networks);
     } catch (err) {
         console.error("Failed to fetch networks from DB:", err);
         res.json([
-            { ssid: 'Guest WiFi', secure: false, strength: 90 },
-            { ssid: 'Home Network', secure: true, strength: 75 }
+            { ssid: 'Guest WiFi', secure: false, strength: 90 }
         ]);
     }
 });
 
-app.get('/api/wifi/status', (req, res) => {
+app.get('/api/wifi/status', async (req, res) => {
+    let connected = await getMockState('wifiConnected', null);
     res.json({
-        connected: mockWifiConnected !== null,
-        ssid: mockWifiConnected,
+        connected: connected !== null,
+        ssid: connected,
         radioOn: true
     });
 });
 
-app.post('/api/wifi/connect', (req, res) => {
+app.post('/api/wifi/connect', async (req, res) => {
     const { ssid, password } = req.body;
     if (!ssid) {
         return res.status(400).json({ success: false, error: 'SSID is required' });
     }
     
     // Simulate connection delay
-    setTimeout(() => {
-        mockWifiConnected = ssid;
+    setTimeout(async () => {
+        await setMockState('wifiConnected', ssid);
         res.json({ success: true, message: `Connected to ${ssid}` });
     }, 1500);
 });
 
-// ─── Hotspot Mock State ──────────────────────────────────────────
-let mockHotspot = {
-    active: false,
-    name: null,
-    clients: []
-};
-
 // ─── API Routes: Hotspot ───────────────────────────────────────
-app.get('/api/hotspot/status', (req, res) => {
-    if (mockHotspot.active && mockHotspot.clients.length === 0) {
-        mockHotspot.clients = [{ name: 'Simulated Device', ip: '192.168.137.10', signal: 'Connected' }];
-    } else if (!mockHotspot.active) {
-        mockHotspot.clients = [];
+app.get('/api/hotspot/status', async (req, res) => {
+    let hotspot = await getMockState('hotspot', { active: false, name: null, clients: [] });
+    if (hotspot.active && hotspot.clients.length === 0) {
+        hotspot.clients = [{ name: 'Simulated Device', ip: '192.168.137.10', signal: 'Connected' }];
+    } else if (!hotspot.active) {
+        hotspot.clients = [];
     }
-    res.json(mockHotspot);
+    res.json(hotspot);
 });
 
-app.post('/api/hotspot/start', (req, res) => {
+app.post('/api/hotspot/start', async (req, res) => {
     const { name, password } = req.body;
     const hName = name || 'ByteLoop';
     const hPassword = password || 'ByteLoop123';
@@ -292,23 +303,22 @@ app.post('/api/hotspot/start', (req, res) => {
         return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
     }
 
-    mockHotspot.active = true;
-    mockHotspot.name = hName;
+    await setMockState('hotspot', { active: true, name: hName, clients: [] });
     res.json({ success: true, message: 'Simulated hotspot started' });
 });
 
-app.post('/api/hotspot/stop', (req, res) => {
-    mockHotspot.active = false;
-    mockHotspot.name = null;
-    mockHotspot.clients = [];
+app.post('/api/hotspot/stop', async (req, res) => {
+    await setMockState('hotspot', { active: false, name: null, clients: [] });
     res.json({ success: true, message: 'Simulated hotspot stopped' });
 });
 
 // ─── API Routes: System Info ───────────────────────────────────
-app.get('/api/system/info', (req, res) => {
+app.get('/api/system/info', async (req, res) => {
     const uptime = os.uptime();
     const hours = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
+
+    let connected = await getMockState('wifiConnected', null);
 
     res.json({
         hostname: os.hostname(),
@@ -316,10 +326,10 @@ app.get('/api/system/info', (req, res) => {
         os: `${os.type()} ${os.release()}`,
         platform: `${os.platform()} ${os.arch()}`,
         network: {
-            connected: mockWifiConnected !== null,
-            type: mockWifiConnected !== null ? `WiFi (${mockWifiConnected})` : 'Disconnected',
+            connected: connected !== null,
+            type: connected !== null ? `WiFi (${connected})` : 'Disconnected',
             ip: '192.168.1.100',
-            signal: mockWifiConnected !== null ? '100%' : 'N/A'
+            signal: connected !== null ? '100%' : 'N/A'
         },
         dataUsage: {
             sent: 124.5,

@@ -95,6 +95,14 @@ async function initDB() {
             )
         `);
 
+        // Mock state storage for Vercel Serverless
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS MockState (
+                key VARCHAR(50) PRIMARY KEY,
+                value JSONB
+            )
+        `);
+
         await client.query(`
             CREATE TABLE IF NOT EXISTS Transactions (
                 id SERIAL PRIMARY KEY,
