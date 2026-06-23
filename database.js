@@ -80,17 +80,6 @@ async function initDB() {
             ALTER TABLE Users ADD COLUMN IF NOT EXISTS bankCvv VARCHAR(10) DEFAULT '123'
         `);
 
-        // Add paymentAmount and txRef columns to Transactions
-        await client.query(`
-            ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS paymentAmount NUMERIC(10, 2) DEFAULT 0
-        `);
-        await client.query(`
-            ALTER TABLE Transactions ALTER COLUMN paymentAmount TYPE NUMERIC(10, 2)
-        `);
-        await client.query(`
-            ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS txRef VARCHAR(50)
-        `).catch(() => {});
-
         await client.query(`
             CREATE TABLE IF NOT EXISTS UsageLogs (
                 id SERIAL PRIMARY KEY,
@@ -112,6 +101,17 @@ async function initDB() {
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Add paymentAmount and txRef columns to Transactions (for existing databases)
+        await client.query(`
+            ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS paymentAmount NUMERIC(10, 2) DEFAULT 0
+        `).catch(() => {});
+        await client.query(`
+            ALTER TABLE Transactions ALTER COLUMN paymentAmount TYPE NUMERIC(10, 2)
+        `).catch(() => {});
+        await client.query(`
+            ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS txRef VARCHAR(50)
+        `).catch(() => {});
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS Plans (
