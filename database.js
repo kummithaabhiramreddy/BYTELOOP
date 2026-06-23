@@ -36,7 +36,8 @@ async function initDB() {
                 bankAccount VARCHAR(255) UNIQUE,
                 bankBalance NUMERIC(10, 2) DEFAULT 100.00,
                 bankCvv VARCHAR(10) DEFAULT '123',
-                bankAccountEdited BOOLEAN DEFAULT false
+                bankAccountEdited BOOLEAN DEFAULT false,
+                hotspotNetworkName VARCHAR(255)
             )
         `);
 
@@ -58,6 +59,11 @@ async function initDB() {
         // Add bankAccountEdited column if it doesn't exist
         await client.query(`
             ALTER TABLE Users ADD COLUMN IF NOT EXISTS bankAccountEdited BOOLEAN DEFAULT false
+        `).catch(() => {});
+
+        // Add hotspotNetworkName column if it doesn't exist
+        await client.query(`
+            ALTER TABLE Users ADD COLUMN IF NOT EXISTS hotspotNetworkName VARCHAR(255)
         `).catch(() => {});
 
         // Add bank columns if they don't exist (for existing databases)
