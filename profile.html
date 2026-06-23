@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ByteLoop - Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body {
+            align-items: flex-start;
+            padding: 1rem;
+        }
+        #app-container {
+            min-height: auto;
+            padding-bottom: 2rem;
+        }
+        .profile-content {
+            padding: 0 1.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Avatar Section */
+        .avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 0 1rem;
+        }
+        .avatar-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4299e1, #667eea);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: white;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 1rem;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .avatar-circle:hover {
+            transform: scale(1.05);
+        }
+        .avatar-edit-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--bg-base);
+            box-shadow: var(--shadow-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--primary);
+        }
+        .profile-name {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+        }
+        .profile-name-input {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-main);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--primary);
+            outline: none;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            width: 200px;
+            padding: 2px 0;
+            margin-bottom: 0.25rem;
+            display: none;
+        }
+        .profile-network-id {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+        .edit-name-btn {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 600;
+            background: none;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Cards */
+        .profile-card {
+            background: var(--bg-base);
+            border-radius: 20px;
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 1rem 1.25rem 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .card-header i {
+            font-size: 16px;
+            color: var(--primary);
+        }
+        .card-body {
+            padding: 0.5rem 1.25rem 1.25rem;
+        }
+
+        /* Status Row */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .status-item {
+            background: var(--bg-base);
+            box-shadow: var(--shadow-inset);
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+        }
+        .status-item .label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .status-item .value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .status-item .value.online {
+            color: #10b981;
+        }
+        .status-item .value.offline {
+            color: #ef4444;
+        }
+
+        /* Data Usage Bar */
+        .usage-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 0.75rem;
+        }
+        .usage-row:last-child { margin-bottom: 0; }
+        .usage-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            width: 70px;
+            flex-shrink: 0;
+        }
+        .usage-bar-track {
+            flex: 1;
+            height: 10px;
+            background: var(--bg-base);
+            box-shadow: var(--shadow-inset);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .usage-bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            transition: width 1s ease;
+        }
+        .usage-bar-fill.upload {
+            background: linear-gradient(90deg, #4299e1, #667eea);
+        }
+        .usage-bar-fill.download {
+            background: linear-gradient(90deg, #ed8936, #f56565);
+        }
+        .usage-value {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            width: 65px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* Info Rows */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .info-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .info-row .info-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+
+        /* Toggle Row */
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.85rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-row .toggle-label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        .toggle-switch {
+            position: relative;
+            width: 46px;
+            height: 26px;
+            cursor: pointer;
+        }
+        .toggle-switch input { display: none; }
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #ccc;
+            border-radius: 26px;
+            transition: background 0.25s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--primary);
+        }
+        .toggle-slider::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 22px; height: 22px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: transform 0.25s;
+        }
+        .toggle-switch input:checked + .toggle-slider::after {
+            transform: translateX(20px);
+        }
+
+        /* Security badge */
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .security-badge.secure {
+            background: #d1fae5;
+            color: #059669;
+        }
+        .security-badge.insecure {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* About section */
+        .about-section {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .about-logo {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 0.75rem;
+        }
+        .about-name {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .about-version {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        .about-build {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            margin-top: 0.25rem;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #ddd 25%, #eee 50%, #ddd 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+            height: 16px;
+            width: 80px;
+            display: inline-block;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .profile-card { animation: fadeInUp 0.4s ease both; }
+        .profile-card:nth-child(2) { animation-delay: 0.05s; }
+        .profile-card:nth-child(3) { animation-delay: 0.1s; }
+        .profile-card:nth-child(4) { animation-delay: 0.15s; }
+        .profile-card:nth-child(5) { animation-delay: 0.2s; }
+        .profile-card:nth-child(6) { animation-delay: 0.25s; }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-section">
+                <img src="logo.png" alt="ByteLoop Logo" class="app-logo">
+                <span>ByteLoop</span>
+            </div>
+            <div class="header-actions">
+                <a href="index.html" class="icon-btn" title="Home">
+                    <i class="ph ph-house"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Avatar Section -->
+        <div class="avatar-section">
+            <div class="avatar-circle" id="avatarCircle" onclick="toggleEditName()">
+                <span id="avatarInitials">BL</span>
+                <div class="avatar-edit-badge"><i class="ph ph-pencil-simple"></i></div>
+            </div>
+            <div class="profile-name" id="profileName">ByteLoop User</div>
+            <input type="text" class="profile-name-input" id="profileNameInput" maxlength="24" placeholder="Enter name">
+            <div class="profile-network-id" id="networkId">BL-XXXX-XX</div>
+            <button class="edit-name-btn" id="editNameBtn" onclick="toggleEditName()"><i class="ph ph-pencil-simple"></i> Edit Name</button>
+        </div>
+
+        <div class="profile-content">
+            <!-- Network Status -->
+            <div class="profile-card">
+                <div class="card-header"><i class="ph ph-wifi-high"></i> Network Status</div>
+                <div class="card-body">
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div class="label">Status</div>
+                            <div class="value" id="netStatus"><span class="skeleton"></span></div>
+                        </div>
+                        <div class="status-item">
+                            <div class="label">Connection</div>
+                            <div class="value" id="netType"><span class="skeleton"></span></div>
+                        </div>
+                        <div class="status-item">
+                            <div class="label">IP Address</div>
+                            <div class="value" id="netIP"><span class="skeleton"></span></div>
+                        </div>
+                        <div class="status-item">
+                            <div class="label">Signal</div>
+                            <div class="value" id="netSignal"><span class="skeleton"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Usage -->
+            <div class="profile-card">
+                <div class="card-header"><i class="ph ph-chart-bar"></i> Data Usage (Session)</div>
+                <div class="card-body">
+                    <div class="usage-row">
+                        <div class="usage-label">Upload</div>
+                        <div class="usage-bar-track">
+                            <div class="usage-bar-fill upload" id="uploadBar" style="width: 0%"></div>
+                        </div>
+                        <div class="usage-value" id="uploadVal">0 MB</div>
+                    </div>
+                    <div class="usage-row">
+                        <div class="usage-label">Download</div>
+                        <div class="usage-bar-track">
+                            <div class="usage-bar-fill download" id="downloadBar" style="width: 0%"></div>
+                        </div>
+                        <div class="usage-value" id="downloadVal">0 MB</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Information -->
+            <div class="profile-card">
+                <div class="card-header"><i class="ph ph-desktop-tower"></i> Device Information</div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Computer Name</span>
+                        <span class="info-value" id="devHostname"><span class="skeleton"></span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Username</span>
+                        <span class="info-value" id="devUsername"><span class="skeleton"></span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Operating System</span>
+                        <span class="info-value" id="devOS"><span class="skeleton"></span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Platform</span>
+                        <span class="info-value" id="devPlatform"><span class="skeleton"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preferences -->
+            <div class="profile-card">
+                <div class="card-header"><i class="ph ph-gear"></i> Preferences</div>
+                <div class="card-body">
+                    <div class="toggle-row">
+                        <span class="toggle-label">Auto-connect Wi-Fi</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="prefAutoConnect" checked onchange="savePref()">
+                            <div class="toggle-slider"></div>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label">Notification Sounds</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="prefNotifSound" checked onchange="savePref()">
+                            <div class="toggle-slider"></div>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label">Data Saver Mode</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="prefDataSaver" onchange="savePref()">
+                            <div class="toggle-slider"></div>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label">Show Signal Strength</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="prefShowSignal" checked onchange="savePref()">
+                            <div class="toggle-slider"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gift Data Card -->
+            <div class="profile-card">
+                <div class="card-header"><i class="ph ph-gift"></i> Gift Active Data</div>
+                <div class="card-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); text-align: left; line-height: 1.4;">
+                        Transfer your active data quota directly to other linked family members.
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <input type="number" id="giftAmount" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem;" placeholder="Amount (GB)" min="0.1" step="0.1">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Recipient</label>
+                        <select id="giftRecipient" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem; cursor: pointer; font-family: 'Outfit';">
+                            <option value="">Select family member</option>
+                        </select>
+                    </div>
+                    <button class="neumorph-btn" id="giftBtn" style="margin-top: 0.5rem; width: 100%;">Send Gift</button>
+                    <div id="giftMsg" class="msg" style="display: none; text-align: center;"></div>
+                </div>
+            </div>
+
+            <!-- Security -->
+            <div class="profile-card">
+                <div class="card-header"><i class="ph ph-shield-check"></i> Security</div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">Encryption</span>
+                        <span class="security-badge secure" id="secEncryption"><i class="ph ph-lock-simple"></i> Active</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Session ID</span>
+                        <span class="info-value" id="secSession" style="font-family: 'Courier New', monospace; font-size: 0.8rem;"><span class="skeleton"></span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Last Active</span>
+                        <span class="info-value" id="secLastLogin"><span class="skeleton"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About -->
+            <div class="profile-card">
+                <div class="card-body about-section">
+                    <img src="logo.png" alt="ByteLoop" class="about-logo">
+                    <div class="about-name">ByteLoop</div>
+                    <div class="about-version">Version 1.0.0</div>
+                    <div class="about-build">Build 2026.06.03</div>
+                </div>
+            </div>
+
+            <!-- Return Home -->
+            <a href="index.html" class="back-btn" style="align-self: center;">
+                <i class="ph ph-arrow-left"></i> Return Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.port === '3000' ? '' : 'http://localhost:3000';
+        
+        // Session Check
+        const currentUserId = localStorage.getItem('userId');
+        const currentUserName = localStorage.getItem('userName');
+        if (!currentUserId) {
+            alert("Please login first on the home dashboard.");
+            window.location.href = "index.html";
+        }
+
+        // ─── Profile State ───────────────────────────────────
+        let profileState = {
+            name: currentUserName || 'ByteLoop User',
+            preferences: {
+                autoConnect: true,
+                notifSound: true,
+                dataSaver: false,
+                showSignal: true
+            }
+        };
+
+        // ─── Generate Random Network ID ──────────────────────
+        function generateNetworkId() {
+            const hex = () => Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+            return `BL-${hex()}-${hex().substring(0, 2)}`;
+        }
+
+        // ─── Generate Session ID ─────────────────────────────
+        function generateSessionId() {
+            const chars = 'abcdef0123456789';
+            let id = '';
+            for (let i = 0; i < 32; i++) {
+                if (i > 0 && i % 8 === 0) id += '-';
+                id += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return id;
+        }
+
+        // ─── Update Initials ─────────────────────────────────
+        function updateInitials(name) {
+            const parts = name.trim().split(/\s+/);
+            let initials = 'BL';
+            if (parts.length >= 2) {
+                initials = (parts[0][0] + parts[1][0]).toUpperCase();
+            } else if (parts[0].length >= 2) {
+                initials = parts[0].substring(0, 2).toUpperCase();
+            }
+            document.getElementById('avatarInitials').textContent = initials;
+        }
+
+        // ─── Edit Name ───────────────────────────────────────
+        let editingName = false;
+        function toggleEditName() {
+            const nameEl = document.getElementById('profileName');
+            const inputEl = document.getElementById('profileNameInput');
+            const btnEl = document.getElementById('editNameBtn');
+
+            if (!editingName) {
+                editingName = true;
+                inputEl.value = profileState.name;
+                nameEl.style.display = 'none';
+                inputEl.style.display = 'block';
+                inputEl.focus();
+                btnEl.innerHTML = '<i class="ph ph-check"></i> Save';
+            } else {
+                editingName = false;
+                const val = inputEl.value.trim() || 'ByteLoop User';
+                profileState.name = val;
+                nameEl.textContent = val;
+                nameEl.style.display = 'block';
+                inputEl.style.display = 'none';
+                btnEl.innerHTML = '<i class="ph ph-pencil-simple"></i> Edit Name';
+                updateInitials(val);
+                saveProfile();
+            }
+        }
+
+        // Handle Enter key on name input
+        document.getElementById('profileNameInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') toggleEditName();
+        });
+
+        // ─── Fetch System Info ────────────────────────────────
+        function fetchSystemInfo() {
+            fetch(`${API_BASE}/api/system/info`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('devHostname').textContent = data.hostname || 'N/A';
+                    document.getElementById('devUsername').textContent = data.username || 'N/A';
+                    document.getElementById('devOS').textContent = data.os || 'N/A';
+                    document.getElementById('devPlatform').textContent = data.platform || 'N/A';
+
+                    // Network info
+                    if (data.network) {
+                        document.getElementById('netStatus').innerHTML = data.network.connected
+                            ? '<span class="online">Online</span>'
+                            : '<span class="offline">Offline</span>';
+                        document.getElementById('netType').textContent = data.network.type || 'N/A';
+                        document.getElementById('netIP').textContent = data.network.ip || 'N/A';
+                        document.getElementById('netSignal').textContent = data.network.signal || 'N/A';
+                    }
+
+                    // Data usage
+                    if (data.dataUsage) {
+                        const upMB = data.dataUsage.sent || 0;
+                        const downMB = data.dataUsage.received || 0;
+                        const maxMB = Math.max(upMB, downMB, 1);
+                        document.getElementById('uploadBar').style.width = Math.min((upMB / maxMB) * 100, 100) + '%';
+                        document.getElementById('downloadBar').style.width = Math.min((downMB / maxMB) * 100, 100) + '%';
+                        document.getElementById('uploadVal').textContent = upMB.toFixed(1) + ' MB';
+                        document.getElementById('downloadVal').textContent = downMB.toFixed(1) + ' MB';
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to fetch system info:', err);
+                    document.getElementById('devHostname').textContent = 'Unavailable';
+                    document.getElementById('devUsername').textContent = 'Unavailable';
+                    document.getElementById('devOS').textContent = 'Unavailable';
+                    document.getElementById('devPlatform').textContent = 'Unavailable';
+                    document.getElementById('netStatus').innerHTML = '<span class="offline">Offline</span>';
+                    document.getElementById('netType').textContent = 'N/A';
+                    document.getElementById('netIP').textContent = 'N/A';
+                    document.getElementById('netSignal').textContent = 'N/A';
+                });
+        }
+
+        // ─── Load Profile ────────────────────────────────────
+        function loadProfile() {
+            fetch(`${API_BASE}/api/profile`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.name) {
+                        profileState.name = data.name;
+                        document.getElementById('profileName').textContent = data.name;
+                        updateInitials(data.name);
+                    } else {
+                        document.getElementById('profileName').textContent = currentUserName;
+                        updateInitials(currentUserName);
+                    }
+                    if (data.networkId) {
+                        document.getElementById('networkId').textContent = data.networkId;
+                    } else {
+                        document.getElementById('networkId').textContent = generateNetworkId();
+                    }
+                    if (data.preferences) {
+                        profileState.preferences = { ...profileState.preferences, ...data.preferences };
+                        document.getElementById('prefAutoConnect').checked = profileState.preferences.autoConnect;
+                        document.getElementById('prefNotifSound').checked = profileState.preferences.notifSound;
+                        document.getElementById('prefDataSaver').checked = profileState.preferences.dataSaver;
+                        document.getElementById('prefShowSignal').checked = profileState.preferences.showSignal;
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('profileName').textContent = currentUserName;
+                    updateInitials(currentUserName);
+                    document.getElementById('networkId').textContent = generateNetworkId();
+                });
+        }
+
+        // ─── Save Profile ────────────────────────────────────
+        function saveProfile() {
+            fetch(`${API_BASE}/api/profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: profileState.name,
+                    preferences: profileState.preferences
+                })
+            }).catch(() => {});
+        }
+
+        function savePref() {
+            profileState.preferences.autoConnect = document.getElementById('prefAutoConnect').checked;
+            profileState.preferences.notifSound = document.getElementById('prefNotifSound').checked;
+            profileState.preferences.dataSaver = document.getElementById('prefDataSaver').checked;
+            profileState.preferences.showSignal = document.getElementById('prefShowSignal').checked;
+            saveProfile();
+        }
+
+        // ─── Security Info ───────────────────────────────────
+        function loadSecurityInfo() {
+            document.getElementById('secSession').textContent = generateSessionId();
+            const now = new Date();
+            document.getElementById('secLastLogin').textContent = now.toLocaleString();
+        }
+
+        // ─── Gifting Logic ────────────────────────────────────
+        function loadRecipients() {
+            fetch(`${API_BASE}/api/users`)
+                .then(res => res.json())
+                .then(users => {
+                    const select = document.getElementById('giftRecipient');
+                    select.innerHTML = '<option value="">Select family member</option>';
+                    users.forEach(u => {
+                        if (String(u.id) !== String(currentUserId)) {
+                            const opt = document.createElement('option');
+                            opt.value = u.id;
+                            opt.textContent = u.username;
+                            select.appendChild(opt);
+                        }
+                    });
+                })
+                .catch(() => {});
+        }
+
+        document.getElementById('giftBtn').addEventListener('click', () => {
+            const amount = parseFloat(document.getElementById('giftAmount').value);
+            const recipientId = document.getElementById('giftRecipient').value;
+            const giftMsg = document.getElementById('giftMsg');
+
+            if (isNaN(amount) || amount <= 0 || !recipientId) {
+                showGiftMessage("Please provide a valid amount and recipient.", "error");
+                return;
+            }
+
+            giftMsg.style.display = 'block';
+            giftMsg.className = 'msg';
+            giftMsg.textContent = 'Sending...';
+
+            fetch(`${API_BASE}/api/gift`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fromUserId: currentUserId,
+                    toUserId: recipientId,
+                    dataAmount: amount
+                })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(d => { throw new Error(d.error); });
+                return res.json();
+            })
+            .then(data => {
+                showGiftMessage(`Gifted ${data.giftedAmount} GB successfully!`, "success");
+                document.getElementById('giftAmount').value = '';
+                document.getElementById('giftRecipient').value = '';
+            })
+            .catch(err => {
+                showGiftMessage(err.message || "Failed to gift data.", "error");
+            });
+        });
+
+        function showGiftMessage(text, type) {
+            const giftMsg = document.getElementById('giftMsg');
+            giftMsg.style.display = 'block';
+            giftMsg.className = `msg ${type === 'success' ? 'success-msg' : 'error-msg'}`;
+            giftMsg.textContent = text;
+            setTimeout(() => {
+                giftMsg.style.display = 'none';
+            }, 4000);
+        }
+
+        // ─── Init ────────────────────────────────────────────
+        loadProfile();
+        fetchSystemInfo();
+        loadSecurityInfo();
+        loadRecipients();
+
+        // Refresh system info every 30 seconds
+        setInterval(fetchSystemInfo, 30000);
+    </script>
+</body>
+</html>

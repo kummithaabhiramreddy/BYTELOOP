@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wi-Fi - ByteLoop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- HTML5 QR Code Scanner -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        .page-container {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .header-top h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .icon-btn-back, .icon-btn-action {
+            background-color: var(--bg-base);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: var(--shadow-light);
+            cursor: pointer;
+            color: var(--primary);
+            border: none;
+        }
+        .icon-btn-back:active, .icon-btn-action:active {
+            box-shadow: var(--shadow-inset);
+        }
+
+        .neumorph-card {
+            background-color: var(--bg-base);
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .toggle-row h3 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        /* Toggle switch */
+        .toggle-switch { position: relative; width: 50px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(163,177,198,0.5); transition: .4s; border-radius: 34px; box-shadow: var(--shadow-inset);
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%; box-shadow: var(--shadow-light);
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .current-connection {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background-color: var(--bg-base);
+            border-radius: 16px;
+            box-shadow: var(--shadow-inset);
+            color: var(--primary);
+            text-align: center;
+        }
+        .current-connection.active { display: flex; }
+        .current-connection i { font-size: 32px; }
+        .conn-ssid { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+        .conn-status { font-size: 0.9rem; font-weight: 600; }
+
+        .networks-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        .networks-title h3 { font-size: 1.1rem; color: var(--text-main); }
+        
+        .refresh-btn {
+            background: none; border: none; cursor: pointer;
+            color: var(--primary); font-family: 'Outfit'; font-weight: 600;
+            display: flex; align-items: center; gap: 4px;
+        }
+
+        .network-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .network-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--bg-base);
+            border-radius: 16px;
+            box-shadow: var(--shadow-light);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .network-item:active { box-shadow: var(--shadow-inset); }
+        .network-info { display: flex; align-items: center; gap: 1rem; }
+        .network-icon { color: var(--primary); font-size: 24px; }
+        .network-name { font-weight: 600; color: var(--text-main); }
+        .network-meta { font-size: 0.8rem; color: var(--text-muted); }
+        .network-secure i { font-size: 16px; color: var(--text-muted); }
+
+        /* Fullscreen Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100; padding: 1.5rem;
+        }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+        .modal-card {
+            background-color: var(--bg-base); border-radius: 24px;
+            padding: 2rem; width: 100%; max-width: 400px;
+            box-shadow: var(--shadow-light); text-align: center;
+        }
+        .modal-card h2 { margin-bottom: 0.5rem; color: var(--text-main); }
+        .modal-card p { margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+        .neumorph-input {
+            width: 100%; background-color: var(--bg-base); border: none; padding: 1rem;
+            border-radius: 12px; box-shadow: var(--shadow-inset); font-family: 'Outfit'; font-size: 1rem;
+            color: var(--text-main); outline: none; margin-bottom: 1.5rem;
+        }
+        .modal-actions { display: flex; gap: 1rem; }
+        .btn-modal {
+            flex: 1; border: none; padding: 1rem; border-radius: 12px;
+            font-family: 'Outfit'; font-weight: 600; font-size: 1rem; cursor: pointer;
+            transition: all 0.2s ease; box-shadow: var(--shadow-light);
+        }
+        .btn-modal:active { box-shadow: var(--shadow-inset); }
+        .btn-cancel { background-color: var(--bg-base); color: var(--text-muted); }
+        .btn-join { background-color: var(--primary); color: white; }
+
+        /* QR Scanner Modal */
+        #reader {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            border: 2px dashed var(--primary);
+        }
+        
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--text-main); color: white; padding: 10px 20px;
+            border-radius: 20px; font-size: 0.9rem; font-weight: 600;
+            opacity: 0; pointer-events: none; transition: all 0.3s;
+            z-index: 200;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="page-container">
+            <div class="header-top" style="width: 100%;">
+                <div class="header-left">
+                    <a href="index.html" class="icon-btn-back"><i class="ph ph-caret-left"></i></a>
+                    <h1>Wi-Fi</h1>
+                </div>
+                <div style="flex: 1;"></div>
+                <!-- QR Scanner Button -->
+                <button class="icon-btn-action" onclick="openScanner()"><i class="ph ph-qr-code"></i></button>
+            </div>
+
+            <div class="neumorph-card">
+                <div class="toggle-row">
+                    <h3>Wi-Fi</h3>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="wifiToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="current-connection" id="currentConnection" style="margin-top: 1rem;">
+                    <i class="ph ph-wifi-high"></i>
+                    <div class="conn-ssid" id="connectedSSID">Network Name</div>
+                    <div class="conn-status">Connected</div>
+                </div>
+
+            </div>
+
+            <div class="neumorph-card" id="wifiAssistantCard" style="display: none;">
+                <div class="toggle-row" style="padding-bottom: 0; border-bottom: none;">
+                    <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-main);">Wi-Fi Assistant<br><span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">Automatically connect to best network</span></span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="wifiAssistantToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="networksSection" style="display: none;">
+                <div class="networks-title">
+                    <h3>Available Networks</h3>
+                    <button class="refresh-btn" onclick="startScan()"><i class="ph ph-arrows-clockwise"></i> Scan</button>
+                </div>
+                
+                <div class="network-list" id="networkList">
+                    <!-- Dynamic -->
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <button class="btn-modal btn-cancel" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="showToast('Add network — feature coming soon')">
+                        <i class="ph ph-plus"></i> Add hidden network
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-card">
+            <h2 id="modalSSID">Network</h2>
+            <p>Enter the password to join.</p>
+            <input type="password" class="neumorph-input" id="passwordInput" placeholder="Password">
+            <div class="modal-actions">
+                <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-modal btn-join" onclick="joinNetwork()">Join</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div class="modal-overlay" id="scannerModal">
+        <div class="modal-card">
+            <h2>Scan Wi-Fi QR</h2>
+            <p>Point your camera at a Wi-Fi QR Code</p>
+            <div id="reader"></div>
+            <button class="btn-modal btn-cancel" style="width: 100%;" onclick="closeScanner()">Cancel</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = window.location.port === '3000' ? '' : 'http://localhost:3000';
+        const wifiToggle = document.getElementById('wifiToggle');
+        const networksSection = document.getElementById('networksSection');
+        const networkList = document.getElementById('networkList');
+        const currentConnEl = document.getElementById('currentConnection');
+        const connectedSSIDEl = document.getElementById('connectedSSID');
+        
+        let connectedSSID = null;
+        let selectedSSID = null;
+        let html5QrcodeScanner = null;
+
+        const wifiAssistantToggle = document.getElementById('wifiAssistantToggle');
+        if (localStorage.getItem('wifiAssistantState') !== null) {
+            wifiAssistantToggle.checked = localStorage.getItem('wifiAssistantState') === 'true';
+        } else {
+            localStorage.setItem('wifiAssistantState', 'true');
+        }
+        wifiAssistantToggle.addEventListener('change', () => {
+            localStorage.setItem('wifiAssistantState', wifiAssistantToggle.checked);
+        });
+
+        wifiToggle.addEventListener('change', () => {
+            if (wifiToggle.checked) {
+                localStorage.setItem('wifiToggleState', 'true');
+                networksSection.style.display = 'block';
+                document.getElementById('wifiAssistantCard').style.display = 'flex';
+                fetchStatus();
+                startScan();
+            } else {
+                localStorage.setItem('wifiToggleState', 'false');
+                networksSection.style.display = 'none';
+                document.getElementById('wifiAssistantCard').style.display = 'none';
+                currentConnEl.classList.remove('active');
+                connectedSSID = null;
+            }
+        });
+
+        // Initialize toggle from localStorage
+        if (localStorage.getItem('wifiToggleState') === 'true') {
+            wifiToggle.checked = true;
+            networksSection.style.display = 'block';
+            document.getElementById('wifiAssistantCard').style.display = 'flex';
+            fetchStatus();
+            startScan();
+        }
+
+        function fetchStatus() {
+            fetch(`${API_BASE}/api/wifi/status`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.connected && data.ssid) {
+                        connectedSSID = data.ssid;
+                        connectedSSIDEl.textContent = data.ssid;
+                        currentConnEl.classList.add('active');
+                    }
+                });
+        }
+
+        function startScan() {
+            networkList.innerHTML = '<p style="text-align:center; color:var(--text-muted);"><i class="ph ph-spinner ph-spin"></i> Scanning...</p>';
+            fetch(`${API_BASE}/api/wifi/scan`)
+                .then(r => r.json())
+                .then(networks => {
+                    networkList.innerHTML = '';
+                    if (!networks || networks.length === 0) {
+                        networkList.innerHTML = '<p style="text-align:center; color:var(--text-muted);">No networks found</p>';
+                        return;
+                    }
+                    networks.forEach(net => {
+                        const el = document.createElement('div');
+                        el.className = 'network-item';
+                        const isConn = (net.ssid === connectedSSID);
+                        const icon = isConn ? '<i class="ph ph-check-circle" style="color: #34c759;"></i>' : '<i class="ph ph-wifi-high"></i>';
+                        
+                        el.innerHTML = `
+                            <div class="network-info">
+                                <div class="network-icon">${icon}</div>
+                                <div>
+                                    <div class="network-name">${net.ssid}</div>
+                                    <div class="network-meta">Signal: ${net.strength || ''}%</div>
+                                </div>
+                            </div>
+                            <div class="network-secure">
+                                ${net.secure && !isConn ? '<i class="ph ph-lock-key"></i>' : ''}
+                            </div>
+                        `;
+                        el.addEventListener('click', () => {
+                            if (isConn) return;
+                            selectedSSID = net.ssid;
+                            if (net.secure) {
+                                document.getElementById('modalSSID').textContent = net.ssid;
+                                document.getElementById('passwordInput').value = '';
+                                document.getElementById('passwordModal').classList.add('active');
+                            } else {
+                                connect(net.ssid, '');
+                            }
+                        });
+                        networkList.appendChild(el);
+                    });
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+        }
+
+        function joinNetwork() {
+            const pw = document.getElementById('passwordInput').value;
+            closeModal();
+            connect(selectedSSID, pw);
+        }
+
+        function connect(ssid, password) {
+            showToast(`Connecting to ${ssid}...`);
+            fetch(`${API_BASE}/api/wifi/connect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ssid, password })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Connected to ${ssid}`);
+                    fetchStatus();
+                    startScan();
+                } else {
+                    showToast(data.error || 'Failed to connect');
+                }
+            });
+        }
+
+        // QR Scanner Logic
+        function openScanner() {
+            document.getElementById('scannerModal').classList.add('active');
+            setTimeout(() => {
+                if (!html5QrcodeScanner) {
+                    html5QrcodeScanner = new Html5QrcodeScanner(
+                        "reader",
+                        { fps: 10, qrbox: {width: 250, height: 250} },
+                        false);
+                    html5QrcodeScanner.render((decodedText, decodedResult) => {
+                        console.log(`Scan result: ${decodedText}`);
+                        closeScanner();
+                        parseWiFiQR(decodedText);
+                    }, (errorMessage) => {
+                        // parse error, ignore
+                    });
+                }
+            }, 300); // Wait for modal animation to complete
+        }
+
+        function closeScanner() {
+            document.getElementById('scannerModal').classList.remove('active');
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(err => console.error(err));
+                html5QrcodeScanner = null;
+            }
+        }
+
+        function parseWiFiQR(qrText) {
+            // Format: WIFI:T:WPA;S:MyNetwork;P:MyPassword;;
+            if (qrText.startsWith("WIFI:")) {
+                const sMatch = qrText.match(/S:(.*?);/);
+                const pMatch = qrText.match(/P:(.*?);/);
+                const ssid = sMatch ? sMatch[1] : null;
+                const password = pMatch ? pMatch[1] : '';
+
+                if (ssid) {
+                    showToast(`Connecting to ${ssid} from QR...`);
+                    connect(ssid, password);
+                } else {
+                    showToast("Invalid Wi-Fi QR Code.");
+                }
+            } else {
+                showToast("Not a valid Wi-Fi QR Code.");
+            }
+        }
+
+        let toastTimer;
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ByteLoop Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header with logo and icons -->
+        <header class="header">
+            <div class="logo">ByteLoop</div>
+            <div class="header-icons">
+                <button class="icon-btn" onclick="showSection('wallet')"><i class="fa fa-wallet"></i></button>
+                <button class="icon-btn" onclick="showSection('user')"><i class="fa fa-user"></i></button>
+            </div>
+        </header>
+
+        <!-- 2x2 Grid of main buttons -->
+        <section class="grid">
+            <button class="grid-btn" onclick="showSection('appInternet')"><i class="fa fa-globe"></i><span>App Internet</span></button>
+            <button class="grid-btn" onclick="showSection('wifi')"><i class="fa fa-wifi"></i><span>WIFI</span></button>
+            <button class="grid-btn" onclick="showSection('hotspot')"><i class="fa fa-bolt"></i><span>Hotspot</span></button>
+            <button class="grid-btn" onclick="showSection('apps')"><i class="fa fa-th"></i><span>Apps</span></button>
+        </section>
+
+        <!-- Recessed content area (dynamic) -->
+        <section class="content-area" id="contentArea">
+            <p class="placeholder">Select "Apps" to view installed applications.</p>
+        </section>
+    </div>
+
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="app.js"></script>
+</body>
+</html>

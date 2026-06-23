@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ByteLoop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg-base: #e0e5ec;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --primary: #4299e1;
+            --accent: #ed8936;
+            --shadow-light: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
+            --shadow-inset: inset 6px 6px 10px 0 rgba(163,177,198,0.7), inset -6px -6px 10px 0 rgba(255,255,255,0.8);
+            --shadow-sm: 4px 4px 8px rgb(163,177,198,0.5), -4px -4px 8px rgba(255,255,255,0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .admin-container {
+            width: 100%;
+            max-width: 900px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding-bottom: 3rem;
+        }
+
+        /* ─── Header ─── */
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .icon-btn-back {
+            background-color: var(--bg-base);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: var(--shadow-light);
+            cursor: pointer;
+            color: var(--primary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .icon-btn-back:active {
+            box-shadow: var(--shadow-inset);
+        }
+
+        .admin-header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+        .admin-header h1 span {
+            color: var(--primary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: #d1fae5;
+            color: #059669;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+            letter-spacing: 1px;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+            animation: pulse-dot 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.7; transform: scale(1.3); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        .last-updated {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* ─── Summary Cards Grid ─── */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .summary-card {
+            background-color: var(--bg-base);
+            border-radius: 20px;
+            padding: 1.25rem;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card:hover {
+            transform: translateY(-2px);
+        }
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            border-radius: 20px 0 0 20px;
+        }
+        .summary-card:nth-child(1)::before { background: linear-gradient(180deg, #4299e1, #667eea); }
+        .summary-card:nth-child(2)::before { background: linear-gradient(180deg, #ed8936, #f56565); }
+        .summary-card:nth-child(3)::before { background: linear-gradient(180deg, #48bb78, #38b2ac); }
+        .summary-card:nth-child(4)::before { background: linear-gradient(180deg, #9f7aea, #667eea); }
+        .summary-card:nth-child(5)::before { background: linear-gradient(180deg, #f56565, #ed64a6); }
+        .summary-card:nth-child(6)::before { background: linear-gradient(180deg, #38b2ac, #4299e1); }
+        .summary-card:nth-child(7)::before { background: linear-gradient(180deg, #10b981, #059669); }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: var(--shadow-inset);
+        }
+        .summary-card:nth-child(1) .card-icon { color: #4299e1; }
+        .summary-card:nth-child(2) .card-icon { color: #ed8936; }
+        .summary-card:nth-child(3) .card-icon { color: #48bb78; }
+        .summary-card:nth-child(4) .card-icon { color: #9f7aea; }
+        .summary-card:nth-child(5) .card-icon { color: #f56565; }
+        .summary-card:nth-child(6) .card-icon { color: #38b2ac; }
+        .summary-card:nth-child(7) .card-icon { color: #10b981; }
+
+        .card-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-main);
+            transition: all 0.4s ease;
+            line-height: 1;
+        }
+
+        .card-value.flash {
+            animation: value-flash 0.6s ease;
+        }
+
+        @keyframes value-flash {
+            0% { color: var(--primary); transform: scale(1.08); }
+            100% { color: var(--text-main); transform: scale(1); }
+        }
+
+        /* ─── Section Panel ─── */
+        .section-panel {
+            background-color: var(--bg-base);
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-light);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title i {
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        .section-count {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            background-color: var(--bg-base);
+            box-shadow: var(--shadow-inset);
+            padding: 2px 10px;
+            border-radius: 12px;
+            margin-left: auto;
+        }
+
+        /* ─── Tables ─── */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            box-shadow: var(--shadow-inset);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead th {
+            background: rgba(66, 153, 225, 0.08);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+            border-bottom: 2px solid rgba(66, 153, 225, 0.12);
+        }
+
+        tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: rgba(163, 177, 198, 0.1);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(66, 153, 225, 0.06);
+        }
+
+        tbody td {
+            padding: 0.7rem 1rem;
+            color: var(--text-main);
+            font-weight: 500;
+            white-space: nowrap;
+            border-bottom: 1px solid rgba(163, 177, 198, 0.15);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge-type {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-gift {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .badge-transfer {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .badge-purchase {
+            background: #d1fae5;
+            color: #059669;
+        }
+        .badge-topup {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+        .badge-other {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .payment-amount {
+            color: #059669;
+            font-weight: 700;
+        }
+        .tx-ref {
+            font-family: monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+        }
+
+        .plan-action-btn {
+            background: var(--bg-base);
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            font-size: 14px;
+            transition: all 0.2s ease;
+            color: var(--text-muted);
+        }
+        .plan-action-btn:hover {
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+        .plan-action-btn.delete:hover {
+            color: #ef4444;
+        }
+        .plan-action-btn:active {
+            box-shadow: var(--shadow-inset);
+            transform: translateY(0);
+        }
+
+        .empty-row {
+            text-align: center;
+            padding: 2rem 1rem !important;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Row animations */
+        tbody tr {
+            animation: row-fade-in 0.4s ease;
+        }
+
+        @keyframes row-fade-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Footer ─── */
+        .admin-footer {
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            padding: 1rem 0;
+        }
+        .admin-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .admin-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ─── Loading Skeleton ─── */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(163,177,198,0.2) 25%, rgba(255,255,255,0.3) 50%, rgba(163,177,198,0.2) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: 8px;
+            height: 1.4rem;
+            width: 60px;
+        }
+
+        @keyframes skeleton-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 600px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .card-value {
+                font-size: 1.3rem;
+            }
+            table {
+                font-size: 0.78rem;
+            }
+            thead th, tbody td {
+                padding: 0.55rem 0.7rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .summary-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
+            }
+            .summary-card {
+                padding: 1rem;
+            }
+        }
+
+        /* ─── Scrollbar ─── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(163,177,198,0.5); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <div class="header-left">
+                <a href="index.html" class="icon-btn-back" title="Back to Home">
+                    <i class="ph ph-arrow-left"></i>
+                </a>
+                <h1><span>ByteLoop</span> Admin</h1>
+            </div>
+            <div class="header-right">
+                <div class="live-badge">
+                    <div class="live-dot"></div>
+                    LIVE
+                </div>
+                <span class="last-updated" id="lastUpdated">Fetching...</span>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="card-icon"><i class="ph ph-users"></i></div>
+                <span class="card-label">Total Users</span>
+                <span class="card-value" id="statUsers"><div class="skeleton"></div></span>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon"><i class="ph ph-chart-line-up"></i></div>
+                <span class="card-label">Usage Logs</span>
+                <span class="card-value" id="statLogs"><div class="skeleton"></div></span>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon"><i class="ph ph-hard-drives"></i></div>
+                <span class="card-label">Data Consumed</span>
+                <span class="card-value" id="statData"><div class="skeleton"></div></span>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon"><i class="ph ph-vault"></i></div>
+                <span class="card-label">Vault Stored</span>
+                <span class="card-value" id="statVault"><div class="skeleton"></div></span>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon"><i class="ph ph-star"></i></div>
+                <span class="card-label">Reward Points</span>
+                <span class="card-value" id="statRewards"><div class="skeleton"></div></span>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon"><i class="ph ph-arrows-left-right"></i></div>
+                <span class="card-label">Transactions</span>
+                <span class="card-value" id="statTx"><div class="skeleton"></div></span>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon"><i class="ph ph-currency-usd"></i></div>
+                <span class="card-label">Total Revenue</span>
+                <span class="card-value" id="statRevenue" style="color: #10b981;"><div class="skeleton"></div></span>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="section-panel">
+            <div class="section-title">
+                <i class="ph ph-user-list"></i>
+                Registered Users
+                <span class="section-count" id="usersCount">0</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Data Quota (GB)</th>
+                            <th>Vault Data (GB)</th>
+                            <th>Reward Points</th>
+                            <th>Bank Account</th>
+                            <th>Bank Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersBody">
+                        <tr><td class="empty-row" colspan="7">Loading users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Plans Management Panel -->
+        <div class="section-panel">
+            <div class="section-title">
+                <i class="ph ph-package"></i>
+                Data Plans Configuration
+                <button onclick="showAddPlanForm()" class="icon-btn-back" style="width: 32px; height: 32px; border-radius: 8px; font-size: 14px; margin-left: auto;" title="Add New Plan">
+                    <i class="ph ph-plus"></i>
+                </button>
+            </div>
+            
+            <!-- Inline Add/Edit Plan Form (Hidden by default) -->
+            <div id="planFormContainer" style="display: none; background: rgba(163, 177, 198, 0.1); padding: 1.25rem; border-radius: 16px; margin-bottom: 1rem; border: 1px solid rgba(66, 153, 225, 0.15); animation: row-fade-in 0.3s ease;">
+                <h4 id="planFormTitle" style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--text-main);">Add New Data Plan</h4>
+                <input type="hidden" id="planFormId">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Plan Name</label>
+                        <input type="text" id="planFormName" placeholder="e.g. Starter Pack" style="width: 100%; border: none; padding: 0.5rem; border-radius: 8px; background: var(--bg-base); box-shadow: var(--shadow-inset); font-family: inherit; font-size: 0.85rem; outline: none; margin-top: 4px; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Data Quota (GB)</label>
+                        <input type="number" id="planFormGb" placeholder="e.g. 5" min="0.1" step="0.1" style="width: 100%; border: none; padding: 0.5rem; border-radius: 8px; background: var(--bg-base); box-shadow: var(--shadow-inset); font-family: inherit; font-size: 0.85rem; outline: none; margin-top: 4px; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Price ($)</label>
+                        <input type="number" id="planFormPrice" placeholder="e.g. 5.00" min="0.01" step="0.01" style="width: 100%; border: none; padding: 0.5rem; border-radius: 8px; background: var(--bg-base); box-shadow: var(--shadow-inset); font-family: inherit; font-size: 0.85rem; outline: none; margin-top: 4px; box-sizing: border-box;">
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Description</label>
+                    <input type="text" id="planFormDesc" placeholder="Brief description of the package" style="width: 100%; border: none; padding: 0.5rem; border-radius: 8px; background: var(--bg-base); box-shadow: var(--shadow-inset); font-family: inherit; font-size: 0.85rem; outline: none; margin-top: 4px; box-sizing: border-box;">
+                </div>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="hidePlanForm()" style="border: none; padding: 0.5rem 1rem; border-radius: 8px; font-family: inherit; font-weight: 600; font-size: 0.8rem; cursor: pointer; background: var(--bg-base); box-shadow: var(--shadow-sm); color: var(--text-muted);">Cancel</button>
+                    <button onclick="submitPlanForm()" style="border: none; padding: 0.5rem 1rem; border-radius: 8px; font-family: inherit; font-weight: 600; font-size: 0.8rem; cursor: pointer; background: var(--primary); color: white; box-shadow: var(--shadow-sm);">Save Plan</button>
+                </div>
+            </div>
+
+            <!-- Plans Table -->
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Data (GB)</th>
+                            <th>Price</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plansBody">
+                        <tr><td class="empty-row" colspan="6">Loading plans...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Usage Logs Table -->
+        <div class="section-panel">
+            <div class="section-title">
+                <i class="ph ph-clock-counter-clockwise"></i>
+                Recent Usage Logs
+                <span class="section-count" id="logsCount">0</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Data Used (GB)</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <tr><td class="empty-row" colspan="4">Loading usage logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="section-panel">
+            <div class="section-title">
+                <i class="ph ph-swap"></i>
+                Recent Transactions
+                <span class="section-count" id="txCount">0</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Data (GB)</th>
+                            <th>Payment</th>
+                            <th>Tx Ref</th>
+                            <th>Type</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="txBody">
+                        <tr><td class="empty-row" colspan="8">Loading transactions...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="admin-footer">
+            ByteLoop Admin Dashboard &middot; <a href="index.html">← Back to App</a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.port === '3000' ? '' : 'http://localhost:3000';
+
+        // Previous values for flash detection
+        let prevValues = {};
+
+        function formatTimestamp(ts) {
+            if (!ts) return '—';
+            const d = new Date(ts);
+            const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            return `${date}, ${time}`;
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent =
+                'Updated: ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function setCardValue(id, value) {
+            const el = document.getElementById(id);
+            const displayVal = typeof value === 'number' ? value.toLocaleString() : value;
+            if (el.textContent !== displayVal) {
+                el.textContent = displayVal;
+                el.classList.remove('flash');
+                void el.offsetWidth; // trigger reflow
+                el.classList.add('flash');
+            }
+        }
+
+        function getTypeBadge(type) {
+            if (!type) return '<span class="badge-type badge-other">—</span>';
+            const t = type.toUpperCase();
+            if (t === 'GIFT') return '<span class="badge-type badge-gift">Gift</span>';
+            if (t === 'TRANSFER') return '<span class="badge-type badge-transfer">Transfer</span>';
+            if (t === 'PURCHASE') return '<span class="badge-type badge-purchase">Purchase</span>';
+            if (t === 'TOPUP') return '<span class="badge-type badge-topup">Top-Up</span>';
+            return `<span class="badge-type badge-other">${t}</span>`;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '—';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ─── DATA UNIT FORMATTER ────────────────────────────────────────
+        function formatDataUnits(gbVal) {
+            if (gbVal == null || isNaN(gbVal)) return '0 B';
+            const bytes = parseFloat(gbVal) * 1024 * 1024 * 1024;
+            if (bytes === 0) return '0 GB';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            const idx = Math.min(Math.max(i, 0), sizes.length - 1);
+            const value = bytes / Math.pow(k, idx);
+            return `${parseFloat(value.toFixed(2))} ${sizes[idx]}`;
+        }
+
+        // ─── Fetch Overview ───
+        async function fetchOverview() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/overview`);
+                const data = await res.json();
+                setCardValue('statUsers', data.totalUsers);
+                setCardValue('statLogs', data.totalUsageLogs);
+                setCardValue('statData', formatDataUnits(data.totalDataConsumed));
+                setCardValue('statVault', formatDataUnits(data.totalVaultStored));
+                setCardValue('statRewards', data.totalRewardPoints);
+                setCardValue('statTx', data.totalTransactions);
+                setCardValue('statRevenue', '$' + parseFloat(data.totalRevenue || 0).toFixed(2));
+            } catch (err) {
+                console.error('Error fetching overview:', err);
+            }
+        }
+
+        // ─── Fetch Users ───
+        async function fetchUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users`);
+                const users = await res.json();
+                const tbody = document.getElementById('usersBody');
+                document.getElementById('usersCount').textContent = users.length;
+
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td class="empty-row" colspan="5">No users registered yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td><strong>${escapeHtml(u.username)}</strong></td>
+                        <td>${formatDataUnits(u.totaldataquota || 0)}</td>
+                        <td>${formatDataUnits(u.vaultdata || 0)}</td>
+                        <td>${parseInt(u.rewardpoints || 0).toLocaleString()}</td>
+                        <td>${u.bankaccount ? escapeHtml(u.bankaccount) : '—'}</td>
+                        <td style="color: var(--primary); font-weight: 600;">$${parseFloat(u.bankbalance || 0).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error fetching users:', err);
+            }
+        }
+
+        // ─── Fetch Usage Logs ───
+        async function fetchUsageLogs() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/usage-logs`);
+                const logs = await res.json();
+                const tbody = document.getElementById('logsBody');
+                document.getElementById('logsCount').textContent = logs.length;
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td class="empty-row" colspan="4">No usage logs recorded yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = logs.map(l => `
+                    <tr>
+                        <td>${l.id}</td>
+                        <td>${escapeHtml(l.username)}</td>
+                        <td>${formatDataUnits(l.dataused || 0)}</td>
+                        <td>${formatTimestamp(l.timestamp)}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error fetching usage logs:', err);
+            }
+        }
+
+        // ─── Fetch Transactions ───
+        async function fetchTransactions() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/transactions`);
+                const txs = await res.json();
+                const tbody = document.getElementById('txBody');
+                document.getElementById('txCount').textContent = txs.length;
+
+                if (txs.length === 0) {
+                    tbody.innerHTML = '<tr><td class="empty-row" colspan="8">No transactions recorded yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = txs.map(t => {
+                    const payment = t.paymentamount ? `<span class="payment-amount">$${parseFloat(t.paymentamount).toFixed(2)}</span>` : '—';
+                    const ref = t.txref ? `<span class="tx-ref">${escapeHtml(t.txref)}</span>` : '—';
+                    return `
+                    <tr>
+                        <td>${t.id}</td>
+                        <td>${escapeHtml(t.fromuser)}</td>
+                        <td>${escapeHtml(t.touser)}</td>
+                        <td>${formatDataUnits(t.dataamount || 0)}</td>
+                        <td>${payment}</td>
+                        <td>${ref}</td>
+                        <td>${getTypeBadge(t.type)}</td>
+                        <td>${formatTimestamp(t.timestamp)}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error('Error fetching transactions:', err);
+            }
+        }
+
+        // ─── Fetch Plans ───
+        async function fetchPlans() {
+            try {
+                const res = await fetch(`${API_BASE}/api/plans`);
+                const plans = await res.json();
+                const tbody = document.getElementById('plansBody');
+
+                if (plans.length === 0) {
+                    tbody.innerHTML = '<tr><td class="empty-row" colspan="6">No plans configured yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = plans.map(p => `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td><strong>${escapeHtml(p.name)}</strong></td>
+                        <td>${parseFloat(p.gb).toFixed(1)} GB</td>
+                        <td><span class="payment-amount">$${parseFloat(p.price).toFixed(2)}</span></td>
+                        <td>${escapeHtml(p.description)}</td>
+                        <td>
+                            <button class="plan-action-btn" onclick="editPlan(${p.id}, '${escapeHtml(p.name).replace(/'/g, "\\'")  }', ${p.gb}, ${p.price}, '${escapeHtml(p.description || '').replace(/'/g, "\\'")}')" title="Edit Plan">
+                                <i class="ph ph-pencil-simple"></i>
+                            </button>
+                            <button class="plan-action-btn delete" onclick="deletePlan(${p.id}, '${escapeHtml(p.name).replace(/'/g, "\\'") }')" title="Delete Plan">
+                                <i class="ph ph-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error fetching plans:', err);
+            }
+        }
+
+        // ─── Plan Form Logic ───
+        function showAddPlanForm() {
+            document.getElementById('planFormId').value = '';
+            document.getElementById('planFormName').value = '';
+            document.getElementById('planFormGb').value = '';
+            document.getElementById('planFormPrice').value = '';
+            document.getElementById('planFormDesc').value = '';
+            document.getElementById('planFormTitle').textContent = 'Add New Data Plan';
+            document.getElementById('planFormContainer').style.display = 'block';
+        }
+
+        function editPlan(id, name, gb, price, desc) {
+            document.getElementById('planFormId').value = id;
+            document.getElementById('planFormName').value = name;
+            document.getElementById('planFormGb').value = gb;
+            document.getElementById('planFormPrice').value = price;
+            document.getElementById('planFormDesc').value = desc;
+            document.getElementById('planFormTitle').textContent = 'Edit Plan: ' + name;
+            document.getElementById('planFormContainer').style.display = 'block';
+        }
+
+        function hidePlanForm() {
+            document.getElementById('planFormContainer').style.display = 'none';
+        }
+
+        async function submitPlanForm() {
+            const id = document.getElementById('planFormId').value;
+            const name = document.getElementById('planFormName').value.trim();
+            const gb = document.getElementById('planFormGb').value;
+            const price = document.getElementById('planFormPrice').value;
+            const description = document.getElementById('planFormDesc').value.trim();
+
+            if (!name || !gb || !price) {
+                alert('Plan name, data quota, and price are required.');
+                return;
+            }
+
+            const action = id ? 'edit' : 'add';
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/plans`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, id: id || undefined, name, gb: parseFloat(gb), price: parseFloat(price), description })
+                });
+                const data = await res.json();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                hidePlanForm();
+                fetchPlans();
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            }
+        }
+
+        async function deletePlan(id, name) {
+            if (!confirm(`Delete plan "${name}"? This cannot be undone.`)) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/plans`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id })
+                });
+                const data = await res.json();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                fetchPlans();
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            }
+        }
+
+        // ─── Master Refresh ───
+        async function refreshAll() {
+            await Promise.all([
+                fetchOverview(),
+                fetchUsers(),
+                fetchUsageLogs(),
+                fetchTransactions(),
+                fetchPlans()
+            ]);
+            updateLastUpdated();
+        }
+
+        // Initial load
+        refreshAll();
+
+        // Auto-refresh every 3 seconds
+        setInterval(refreshAll, 3000);
+    </script>
+</body>
+</html>

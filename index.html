@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ByteLoop</title>
+    <!-- Use a premium modern font: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Auth Screen -->
+        <div class="auth-container" id="authScreen" style="display: none;">
+            <div class="auth-card">
+                <h1>ByteLoop</h1>
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="tab-login" onclick="switchAuth('login')">Login</button>
+                    <button class="auth-tab" id="tab-register" onclick="switchAuth('register')">Register</button>
+                </div>
+                <div id="loginForm">
+                    <input type="tel" class="neumorph-input" id="loginPhone" placeholder="Phone Number (e.g. 9876543210)" style="margin-bottom: 1rem;" maxlength="15">
+                    <input type="password" class="neumorph-input" id="loginPassword" placeholder="Password" style="margin-bottom: 1.5rem;">
+                    <button class="btn-modal btn-join" onclick="login()" style="width: 100%; background-color: var(--primary); color: white;">Sign In</button>
+                </div>
+                <div id="registerForm" style="display: none;">
+                    <input type="tel" class="neumorph-input" id="regPhone" placeholder="Phone Number (e.g. 9876543210)" style="margin-bottom: 1rem;" maxlength="15">
+                    <input type="password" class="neumorph-input" id="regPassword" placeholder="Choose Password" style="margin-bottom: 1.5rem;">
+                    <button class="btn-modal btn-join" onclick="register()" style="width: 100%; background-color: var(--primary); color: white;">Create Account</button>
+                </div>
+                <div id="authMsg" class="msg" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboardScreen" style="display: none; height: 100%; display: flex; flex-direction: column;">
+            <!-- Header -->
+            <header class="header">
+                <div class="logo-section">
+                    <img src="logo.png" alt="ByteLoop Logo" class="app-logo">
+                    <span>ByteLoop</span>
+                </div>
+                <div class="header-actions">
+                    <a href="wallet.html" class="icon-btn" title="Data Storage Wallet">
+                        <i class="ph ph-wallet"></i>
+                    </a>
+                    <a href="profile.html" class="icon-btn" title="Profile">
+                        <i class="ph ph-user"></i>
+                    </a>
+                    <a href="admin.html" class="icon-btn" title="Admin Dashboard">
+                        <i class="ph ph-chart-line-up"></i>
+                    </a>
+                    <button class="icon-btn" onclick="logout()" title="Logout">
+                        <i class="ph ph-sign-out"></i>
+                    </button>
+                </div>
+            </header>
+
+            <h2 style="font-size: 1.3rem; margin: 0 1.5rem 0.5rem; color: var(--text-main); font-weight: 600;">Welcome, <span id="userName">User</span></h2>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Active Data Quota -->
+                <div class="quota-section">
+                    <div class="quota-header">
+                        <span>Active Data Quota</span>
+                        <span id="quota-value">0 GB / 0 GB</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="dataProgressBar"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+                        <span>Used: <span id="quota-used">0 GB</span></span>
+                        <span>Remaining: <span id="quota-remaining">0 GB</span></span>
+                    </div>
+                </div>
+
+                <!-- Control Grid -->
+                <div class="control-grid">
+                    <button class="elliptical-btn" id="btn-internet">
+                        <div class="btn-icon-wrapper"><i class="ph ph-globe" id="icon-internet"></i></div>
+                        <span class="btn-label">App Internet</span>
+                    </button>
+                    <button class="elliptical-btn" id="btn-wifi">
+                        <div class="btn-icon-wrapper"><i class="ph ph-wifi-high" id="icon-wifi"></i></div>
+                        <span class="btn-label">WIFI</span>
+                    </button>
+                    <button class="elliptical-btn" id="btn-hotspot">
+                        <div class="btn-icon-wrapper"><i class="ph ph-broadcast" id="icon-hotspot"></i></div>
+                        <span class="btn-label">Hotspot</span>
+                    </button>
+                    <button class="elliptical-btn" id="btn-apps">
+                        <div class="btn-icon-wrapper"><i class="ph ph-squares-four" id="icon-apps"></i></div>
+                        <span class="btn-label">Apps</span>
+                    </button>
+                </div>
+
+                <!-- App Viewer -->
+                <div class="app-viewer" id="app-viewer">
+                    <!-- Search Bar -->
+                    <div class="search-container" id="search-container" style="display: none;">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" id="app-search" placeholder="Search apps...">
+                    </div>
+
+                    <div class="status-message" id="status-message">
+                        <div class="status-icon-wrapper">
+                            <i class="ph ph-warning-circle"></i>
+                        </div>
+                        <h2>Data Flow Restricted</h2>
+                        <p id="status-subtext">App internet is required to sync and display device applications.</p>
+                    </div>
+                    
+                    <div class="app-grid" id="app-grid" style="display: none;">
+                        <!-- Apps will be dynamically injected here by JS -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Data Depleted Toast -->
+    <div class="toast-notification" id="dataToast" style="display:none;">
+        <i class="ph ph-warning-circle"></i>
+        <span id="toastMsg">Your stored data is completed. Please store more data in your wallet.</span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

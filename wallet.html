@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Vault Wallet - ByteLoop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .page-container {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .header-top h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            margin-left: 1rem;
+        }
+        .icon-btn-back {
+            background-color: var(--bg-base);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: var(--shadow-light);
+            cursor: pointer;
+            color: var(--primary);
+        }
+        .icon-btn-back:active {
+            box-shadow: var(--shadow-inset);
+        }
+        
+        .neumorph-card {
+            background-color: var(--bg-base);
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .vault-status-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.25rem;
+            background-color: var(--bg-base);
+            border-radius: 20px;
+            box-shadow: var(--shadow-inset);
+            text-align: center;
+        }
+
+        .vault-icon {
+            font-size: 64px;
+            color: var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .vault-icon.syncing {
+            animation: pulse-spin 1s infinite ease-in-out;
+            color: var(--accent);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-badge.online {
+            background: #d1fae5;
+            color: #059669;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        }
+
+        .status-badge.offline {
+            background: #fee2e2;
+            color: #dc2626;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+        }
+
+        /* Storage Progress */
+        .storage-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .storage-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .storage-bar-track {
+            height: 14px;
+            background: var(--bg-base);
+            box-shadow: var(--shadow-inset);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .storage-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #667eea);
+            border-radius: 8px;
+            width: 24.5%;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Info List */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .neumorph-btn {
+            background-color: var(--bg-base);
+            border: none;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            font-family: 'Outfit';
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .neumorph-btn:active:not(:disabled) {
+            box-shadow: var(--shadow-inset);
+        }
+        .neumorph-btn:disabled {
+            box-shadow: var(--shadow-light);
+            opacity: 0.55;
+            cursor: not-allowed;
+            color: var(--text-muted);
+        }
+
+        .explain-box {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            background-color: rgba(66, 153, 225, 0.05);
+            border-left: 3px solid var(--primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0 12px 12px 0;
+        }
+
+        /* Fullscreen Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100; padding: 1.5rem;
+        }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+        .modal-card {
+            background-color: var(--bg-base); border-radius: 24px;
+            padding: 2rem; width: 100%; max-width: 400px;
+            box-shadow: var(--shadow-light); text-align: center;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-card h2 { margin-bottom: 0.5rem; color: var(--text-main); }
+        .modal-card p { margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+        .neumorph-input {
+            width: 100%; background-color: var(--bg-base); border: none; padding: 1rem;
+            border-radius: 12px; box-shadow: var(--shadow-inset); font-family: 'Outfit'; font-size: 1rem;
+            color: var(--text-main); outline: none; margin-bottom: 1.5rem;
+        }
+        .modal-actions { display: flex; gap: 1rem; }
+        .btn-modal {
+            flex: 1; border: none; padding: 1rem; border-radius: 12px;
+            font-family: 'Outfit'; font-weight: 600; font-size: 1rem; cursor: pointer;
+            transition: all 0.2s ease; box-shadow: var(--shadow-light);
+        }
+        .btn-modal:active { box-shadow: var(--shadow-inset); }
+        .btn-cancel { background-color: var(--bg-base); color: var(--text-muted); }
+        .btn-join { background-color: var(--primary); color: white; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @keyframes pulse-spin {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* ─── Premium Plans Grid & Checkout Forms ─── */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 1.25rem 0;
+        }
+        @media (max-width: 400px) {
+            .plans-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .plan-card {
+            background-color: var(--bg-base);
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: var(--shadow-light);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            border: 2px solid transparent;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .plan-card.selected {
+            box-shadow: var(--shadow-inset);
+            border-color: var(--primary);
+        }
+
+        .plan-title {
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .plan-gb {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .plan-price {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .checkout-step {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            animation: fadeIn 0.3s ease;
+            text-align: left;
+        }
+
+        .checkout-step.active {
+            display: flex;
+        }
+
+        .checkout-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .checkout-input-group {
+            margin-bottom: 12px;
+            width: 100%;
+        }
+
+        .checkout-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .checkout-col {
+            flex: 1;
+        }
+
+        /* ─── Processing Spinner ─── */
+        .loader-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 1.5rem 0;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .loader-container.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 5px solid rgba(66, 153, 225, 0.1);
+            border-top-color: var(--primary);
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .success-checkmark {
+            font-size: 64px;
+            color: #10b981;
+            animation: pulse-spin 0.6s ease;
+        }
+
+        .plan-details-confirm {
+            background-color: var(--bg-base);
+            box-shadow: var(--shadow-inset);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        /* Receipt Print Styles */
+        @media print {
+            body * { visibility: hidden; }
+            #receiptContent, #receiptContent * { visibility: visible; }
+            #receiptContent { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; padding: 0; margin: 0; }
+        }
+
+        /* Neumorphic Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            box-shadow: var(--shadow-inset);
+            background-color: var(--bg-base);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        thead th {
+            background: rgba(66, 153, 225, 0.08);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+            border-bottom: 2px solid rgba(66, 153, 225, 0.12);
+        }
+        tbody tr {
+            transition: background-color 0.3s ease;
+        }
+        tbody tr:nth-child(even) {
+            background-color: rgba(163, 177, 198, 0.1);
+        }
+        tbody tr:hover {
+            background-color: rgba(66, 153, 225, 0.06);
+        }
+        tbody td {
+            padding: 0.7rem 1rem;
+            color: var(--text-main);
+            font-weight: 500;
+            white-space: nowrap;
+            border-bottom: 1px solid rgba(163, 177, 198, 0.15);
+        }
+        .badge-type {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-gift {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .badge-purchase {
+            background: #d1fae5;
+            color: #059669;
+        }
+        .badge-topup {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .badge-other {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        .btn-view-receipt {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 0;
+            font-family: inherit;
+            font-size: inherit;
+        }
+        .btn-view-receipt:hover {
+            color: #2b6cb0;
+        }
+        .empty-row {
+            text-align: center;
+            padding: 2rem 1rem !important;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="page-container">
+            <div class="header-top">
+                <a href="index.html" class="icon-btn-back"><i class="ph ph-arrow-left"></i></a>
+                <h1>Data Storage Wallet</h1>
+            </div>
+
+            <!-- Vault Connection Card -->
+            <div class="neumorph-card">
+                <div class="vault-status-wrapper">
+                    <i class="ph ph-wallet-bold vault-icon" id="vaultIcon"></i>
+                    <h3 id="vaultStatusText">Vault Connected</h3>
+                    <span class="status-badge" id="statusBadge">Sync Active</span>
+                </div>
+
+                <div class="storage-section">
+                    <div class="storage-header">
+                        <span>Vault Stored Data</span>
+                        <span id="storagePctText">24%</span>
+                    </div>
+                    <div class="storage-bar-track">
+                        <div class="storage-bar-fill" id="storageBar"></div>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;" id="storageValText">2.4 GB / 10.0 GB</span>
+                </div>
+            </div>
+
+            <!-- Connection Details Card -->
+            <div class="neumorph-card">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.25rem;">Encrypted Sync Pipe</h3>
+                
+                <div class="info-row">
+                    <span class="info-label">Pipe Status</span>
+                    <span class="info-value" id="pipeStatusVal">Linked</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Source Mobile</span>
+                    <span class="info-value" id="mobileNameVal">ByteLoop Device</span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Data Plan Limit</span>
+                    <span class="info-value" id="dataLimitVal" style="cursor: pointer; color: var(--primary); display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
+                        <span id="dataLimitText">10.0 GB</span> <i class="ph ph-pencil-simple"></i>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Available Mobile Data</span>
+                    <span class="info-value" id="availableDataVal" style="color: #059669; font-weight: 700;">10.00 GB</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Total Sent (Upload)</span>
+                    <span class="info-value" id="sentDataVal">0.00 GB</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Total Received (Download)</span>
+                    <span class="info-value" id="receivedDataVal">0.00 GB</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cached Apps Vault</span>
+                    <span class="info-value" id="cachedAppsCount">40 Apps</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Sync Frequency</span>
+                    <span class="info-value">Real-time (Seconds)</span>
+                </div>
+            </div>
+
+             <div style="display: flex; gap: 12px; margin-bottom: 1rem; width: 100%;">
+                 <button class="neumorph-btn" id="syncBtn" style="flex: 1; margin: 0;">
+                    <i class="ph ph-arrows-clockwise"></i>
+                    <span id="syncBtnText">Save Unused Data</span>
+                 </button>
+             </div>
+
+            <!-- Retrieve Section -->
+            <div class="neumorph-card" style="gap: 0.5rem; margin-bottom: 1rem;">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.25rem; text-align: left;">Retrieve from Vault</h3>
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <input type="number" id="retrieveAmount" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem;" placeholder="GB to retrieve" min="0.1" step="0.1">
+                    <button class="neumorph-btn" id="retrieveBtn" style="margin-top: 0; padding: 0.75rem 1.5rem; flex-shrink: 0;">Retrieve</button>
+                </div>
+                <div id="vaultMsg" class="msg" style="display: none; text-align: center;"></div>
+            </div>
+
+            <!-- Explanation Box -->
+            <div class="explain-box">
+                <i class="ph ph-info" style="margin-right: 4px; vertical-align: middle;"></i>
+                Use the controls above to save your unused session data quota directly into the rollover vault, or retrieve stored gigabytes back to your active data balance!
+            </div>
+
+            <!-- Transaction History Card -->
+            <div class="neumorph-card" style="margin-top: 1rem;">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.25rem;">Recent Transactions</h3>
+                <div class="table-wrapper" style="max-height: 250px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Details</th>
+                                <th>Amount</th>
+                                <th>Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="walletTxBody">
+                            <tr><td colspan="5" class="empty-row">Loading transactions...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Limit Modal / Upgrade Plan Checkout -->
+    <div class="modal-overlay" id="limitModal">
+        <div class="modal-card">
+            <!-- Step 1: Select Plan -->
+            <div id="step-select" class="checkout-step active">
+                <h2 style="text-align: center;">Upgrade Data Plan</h2>
+                <p style="text-align: center; margin-bottom: 1.25rem;">Select a premium data quota plan to add to your connection balance.</p>
+                <div class="plans-grid" id="plansGrid">
+                    <div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 1rem;">Loading plans...</div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-modal btn-cancel" onclick="closeLimitModal()">Cancel</button>
+                    <button class="btn-modal btn-join" id="btnGoToPay" onclick="goToCheckout()">Next: Pay with Stripe</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Loading -->
+            <div id="step-loading" class="loader-container">
+                <div class="spinner"></div>
+                <h3 style="font-weight: 600; color: var(--text-main); margin-top: 10px;">Redirecting to Stripe...</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Securely preparing your checkout session...</p>
+            </div>
+
+            <!-- Step 4: Success -->
+            <div id="step-success" class="loader-container">
+                <i class="ph ph-check-circle-bold success-checkmark"></i>
+                <h3 style="font-weight: 800; color: #10b981; margin-top: 10px;">Payment Successful!</h3>
+                <p id="successMessageText" style="font-size: 0.9rem; color: var(--text-muted); text-align: center; margin-bottom: 1rem;">Your Data Plan has been activated.</p>
+                <div class="modal-actions" style="width: 100%;">
+                    <button class="btn-modal btn-join" onclick="closeLimitModal()" style="background-color: #10b981; color: white;">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Receipt Modal -->
+    <div class="modal-overlay" id="receiptModal">
+        <div class="modal-card" style="max-width: 450px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin: 0; color: var(--text-main); font-weight: 800; font-size: 1.3rem;">ByteLoop Invoice</h2>
+                <button class="icon-btn-back" onclick="closeReceiptModal()" style="width: 32px; height: 32px; font-size: 14px;"><i class="ph ph-x"></i></button>
+            </div>
+            <div id="receiptContent" style="background: white; border-radius: 16px; padding: 1.5rem; color: #2d3748; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); font-family: monospace; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all; border: 1px solid rgba(0,0,0,0.08);">
+                <!-- Loaded dynamically -->
+            </div>
+            <div class="modal-actions" style="margin-top: 1.5rem;">
+                <button class="btn-modal btn-cancel" onclick="closeReceiptModal()">Close</button>
+                <button class="btn-modal btn-join" onclick="printReceipt()" style="background-color: var(--primary); color: white;">Print Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.port === '3000' ? '' : 'http://localhost:3000';
+        
+        // Session Check
+        const currentUserId = localStorage.getItem('userId');
+        const currentUserName = localStorage.getItem('userName');
+        if (!currentUserId) {
+            alert("Please login first on the home dashboard.");
+            window.location.href = "index.html";
+        }
+
+        const vaultIcon = document.getElementById('vaultIcon');
+        const statusBadge = document.getElementById('statusBadge');
+        const vaultStatusText = document.getElementById('vaultStatusText');
+        const syncBtn = document.getElementById('syncBtn');
+        const syncBtnText = document.getElementById('syncBtnText');
+        const storageBar = document.getElementById('storageBar');
+        const storagePctText = document.getElementById('storagePctText');
+        const storageValText = document.getElementById('storageValText');
+        const pipeStatusVal = document.getElementById('pipeStatusVal');
+        const mobileNameVal = document.getElementById('mobileNameVal');
+        const cachedAppsCount = document.getElementById('cachedAppsCount');
+
+        const limitModal = document.getElementById('limitModal');
+        const limitInput = document.getElementById('limitInput');
+        const dataLimitText = document.getElementById('dataLimitText');
+        const availableDataVal = document.getElementById('availableDataVal');
+        const sentDataVal = document.getElementById('sentDataVal');
+        const receivedDataVal = document.getElementById('receivedDataVal');
+
+        const retrieveAmount = document.getElementById('retrieveAmount');
+        const retrieveBtn = document.getElementById('retrieveBtn');
+        const vaultMsg = document.getElementById('vaultMsg');
+
+        // New DOM variables
+        const topupModal = document.getElementById('topupModal');
+        const topupBtn = document.getElementById('topupBtn');
+        const topupAmount = document.getElementById('topupAmount');
+        const receiptModal = document.getElementById('receiptModal');
+        const receiptContent = document.getElementById('receiptContent');
+        const bankCvvVal = document.getElementById('bankCvvVal');
+        const walletTxBody = document.getElementById('walletTxBody');
+        const plansGrid = document.getElementById('plansGrid');
+
+        // State variables
+        let storedDataGB = 0; // Stored in Vault
+        let totalDataGB = 10.0; // Total Data Quota Limit
+        let uploadGB = 0;
+        let downloadGB = 0;
+        let activeUsedGB = 0;
+
+        function showMessage(text, type) {
+            vaultMsg.textContent = text;
+            vaultMsg.style.display = 'block';
+            vaultMsg.className = `msg ${type === 'success' ? 'success-msg' : 'error-msg'}`;
+            setTimeout(() => {
+                vaultMsg.style.display = 'none';
+            }, 4000);
+        }
+
+        function formatDataUnits(gbVal) {
+            if (gbVal == null || isNaN(gbVal)) return '0 B';
+            const bytes = parseFloat(gbVal) * 1024 * 1024 * 1024;
+            if (bytes === 0) return '0 GB';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            const idx = Math.min(Math.max(i, 0), sizes.length - 1);
+            const value = bytes / Math.pow(k, idx);
+            return `${parseFloat(value.toFixed(2))} ${sizes[idx]}`;
+        }
+
+        function updateStorageUI() {
+            // Percent of vault data relative to quota limit
+            const pct = Math.min(Math.round((storedDataGB / totalDataGB) * 100), 100);
+            storageBar.style.width = `${pct}%`;
+            storagePctText.textContent = `${pct}%`;
+            storageValText.textContent = `${formatDataUnits(storedDataGB)} Vaulted / ${formatDataUnits(totalDataGB)} Quota`;
+            dataLimitText.textContent = formatDataUnits(totalDataGB);
+
+            // Calculate remaining active data quota
+            const remainingGB = Math.max(totalDataGB - activeUsedGB, 0);
+            availableDataVal.textContent = formatDataUnits(remainingGB);
+            
+            if (remainingGB === 0) {
+                availableDataVal.style.color = "#dc2626";
+            } else if (remainingGB < (totalDataGB * 0.2)) {
+                availableDataVal.style.color = "#ed8936";
+            } else {
+                availableDataVal.style.color = "#059669";
+            }
+
+            sentDataVal.textContent = formatDataUnits(uploadGB);
+            receivedDataVal.textContent = formatDataUnits(downloadGB);
+        }
+
+        // Plan Selection & Checkout State variables
+        let selectedPlanId = null;
+        let selectedPlanGb = 15;
+        let selectedPlanPrice = 12.00;
+        let selectedPlanTitle = "Value Pack";
+        let userBankAccount = '';
+        let userBankBalance = 0.00;
+        let activeCheckoutBalance = 0.00;
+        let activeCheckoutAccount = '';
+
+        async function loadPlans() {
+            try {
+                const res = await fetch(`${API_BASE}/api/plans`);
+                const plans = await res.json();
+                if (plans.length === 0) {
+                    plansGrid.innerHTML = `<div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 1rem;">No premium plans defined.</div>`;
+                    return;
+                }
+                plansGrid.innerHTML = '';
+                plans.forEach((p, idx) => {
+                    const isSelected = (selectedPlanId === null && (idx === 1 || plans.length === 1)) || (selectedPlanId === p.id);
+                    if (isSelected) {
+                        selectedPlanId = p.id;
+                        selectedPlanGb = p.gb;
+                        selectedPlanPrice = parseFloat(p.price);
+                        selectedPlanTitle = p.name;
+                    }
+                    
+                    const card = document.createElement('div');
+                    card.className = `plan-card ${isSelected ? 'selected' : ''}`;
+                    card.onclick = () => selectPlan(p.id, p.gb, parseFloat(p.price), p.name, card);
+                    card.innerHTML = `
+                        <span class="plan-title">${p.name}</span>
+                        <span class="plan-gb">${p.gb} GB</span>
+                        <span class="plan-price">$${parseFloat(p.price).toFixed(2)}</span>
+                    `;
+                    plansGrid.appendChild(card);
+                });
+            } catch (err) {
+                console.error("Error loading plans:", err);
+                plansGrid.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #dc2626; padding: 1rem;">Failed to load plans from server.</div>`;
+            }
+        }
+
+        function selectPlan(id, gb, price, name, element) {
+            selectedPlanId = id;
+            selectedPlanGb = gb;
+            selectedPlanPrice = price;
+            selectedPlanTitle = name;
+
+            // Remove selected class from all plan-cards
+            document.querySelectorAll('.plan-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            // Add selected class to the clicked card
+            if (element) {
+                element.classList.add('selected');
+            }
+        }
+
+        function goToCheckout() {
+            document.getElementById('step-select').classList.remove('active');
+            document.getElementById('step-loading').classList.add('active');
+
+            fetch(`${API_BASE}/api/payment/create-checkout-session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: currentUserId,
+                    planId: selectedPlanId
+                })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(d => { throw new Error(d.error); });
+                return res.json();
+            })
+            .then(data => {
+                // Redirect to Stripe Checkout
+                window.location.href = data.url;
+            })
+            .catch(err => {
+                alert("Failed to initiate checkout: " + err.message);
+                document.getElementById('step-loading').classList.remove('active');
+                document.getElementById('step-select').classList.add('active');
+            });
+        }
+
+
+        // Limit Modal Handlers
+        document.getElementById('dataLimitVal').addEventListener('click', () => {
+            // Reset steps
+            document.getElementById('step-select').classList.add('active');
+            document.getElementById('step-loading').classList.remove('active');
+            document.getElementById('step-success').classList.remove('active');
+
+            limitModal.classList.add('active');
+        });
+
+
+
+        function closeLimitModal() {
+            limitModal.classList.remove('active');
+        }
+
+        function checkAppInternetState() {
+            const appInternetOn = localStorage.getItem('appInternetToggleState') === 'true';
+            
+            if (appInternetOn) {
+                statusBadge.textContent = "Sync Ready";
+                statusBadge.className = "status-badge online";
+                vaultStatusText.textContent = "Data Vault Synchronized";
+                pipeStatusVal.textContent = "Online / Enabled";
+                pipeStatusVal.style.color = "#059669";
+            } else {
+                statusBadge.textContent = "Offline (Suspended)";
+                statusBadge.className = "status-badge offline";
+                vaultStatusText.textContent = "Vault Sync Suspended";
+                pipeStatusVal.textContent = "Offline / Restrained";
+                pipeStatusVal.style.color = "#dc2626";
+            }
+        }
+
+        function fetchLiveDetails() {
+            // Fetch cached apps count
+            fetch(`${API_BASE}/api/apps`)
+                .then(r => r.status === 200 ? r.json() : null)
+                .then(apps => {
+                    if (apps && apps.length > 0) {
+                        cachedAppsCount.textContent = `${apps.length} Apps`;
+                    }
+                })
+                .catch(() => {});
+
+            // Fetch live system info
+            fetch(`${API_BASE}/api/system/info`)
+                .then(r => r.json())
+                .then(sys => {
+                    if (sys.hostname) {
+                        mobileNameVal.textContent = sys.hostname;
+                    }
+                    if (sys.dataUsage) {
+                        uploadGB = (sys.dataUsage.sent || 0) / 1024;
+                        downloadGB = (sys.dataUsage.received || 0) / 1024;
+                    }
+                    fetchDatabaseStats();
+                })
+                .catch(err => console.error("Error fetching network statistics:", err));
+        }
+
+        function fetchDatabaseStats() {
+            fetch(`${API_BASE}/api/stats/${currentUserId}`)
+                .then(r => r.json())
+                .then(data => {
+                    storedDataGB = data.vaultData || 0.0;
+                    totalDataGB = data.totalDataQuota || 10.0;
+                    activeUsedGB = data.totalUsed || 0.0;
+                    userBankAccount = data.bankAccount || '';
+                    userBankBalance = data.bankBalance || 0.00;
+                    
+                    // Store stats globally to easily check current user phone
+                    window.userStatsData = data;
+                    if (data.phoneNumber) {
+                        localStorage.setItem('userPhone', data.phoneNumber);
+                    }
+
+                    // Render details on main Wallet page
+                    const bankAccEl = document.getElementById('bankAccVal');
+                    const bankBalEl = document.getElementById('bankBalVal');
+                    if (bankAccEl) bankAccEl.textContent = userBankAccount || '—';
+                    if (bankBalEl) bankBalEl.textContent = `$${userBankBalance.toFixed(2)}`;
+                    if (bankCvvVal) bankCvvVal.textContent = data.bankCvv || '—';
+
+                    updateStorageUI();
+                    fetchTransactionHistory();
+                })
+                .catch(err => console.error("Error fetching database stats:", err));
+        }
+
+        function fetchTransactionHistory() {
+            fetch(`${API_BASE}/api/transactions/${currentUserId}`)
+                .then(r => r.json())
+                .then(txs => {
+                    if (!txs || txs.length === 0) {
+                        walletTxBody.innerHTML = '<tr><td colspan="5" class="empty-row">No transactions found</td></tr>';
+                        return;
+                    }
+                    
+                    const currentPhone = localStorage.getItem('userPhone') || (window.userStatsData ? window.userStatsData.phoneNumber : '');
+                    
+                    walletTxBody.innerHTML = txs.map(t => {
+                        const dateObj = new Date(t.timestamp);
+                        const date = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        let typeBadge = '';
+                        let details = '';
+                        let amountSign = '';
+                        let amountColor = '';
+                        let hasReceipt = false;
+                        
+                        const isSender = (t.fromphone === currentPhone);
+
+                        if (t.type === 'PURCHASE') {
+                            typeBadge = '<span class="badge-type badge-purchase">Purchase</span>';
+                            details = `Data Plan Upgrade`;
+                            amountSign = `-$${parseFloat(t.paymentAmount || 0).toFixed(2)}`;
+                            amountColor = 'color: #dc2626; font-weight: 700;';
+                            hasReceipt = true;
+                        } else if (t.type === 'GIFT') {
+                            if (isSender) {
+                                typeBadge = '<span class="badge-type badge-gift">Gift Sent</span>';
+                                details = `To: ${t.tophone || 'User'}`;
+                                amountSign = `-${t.dataamount} GB`;
+                                amountColor = 'color: #dc2626; font-weight: 700;';
+                            } else {
+                                typeBadge = '<span class="badge-type badge-gift">Gift Recv</span>';
+                                details = `From: ${t.fromphone || 'User'}`;
+                                amountSign = `+${t.dataamount} GB`;
+                                amountColor = 'color: #059669; font-weight: 700;';
+                            }
+                        } else if (t.type === 'TOPUP') {
+                            typeBadge = '<span class="badge-type badge-topup">Top-up</span>';
+                            details = `Direct Deposit`;
+                            amountSign = `+$${parseFloat(t.paymentAmount || 0).toFixed(2)}`;
+                            amountColor = 'color: #059669; font-weight: 700;';
+                        } else {
+                            typeBadge = `<span class="badge-type badge-other">${t.type}</span>`;
+                            details = `Data amount: ${t.dataamount} GB`;
+                            amountSign = t.paymentAmount ? `$${parseFloat(t.paymentAmount).toFixed(2)}` : `${t.dataamount} GB`;
+                            amountColor = 'font-weight: 700;';
+                        }
+                        
+                        const receiptAction = hasReceipt 
+                            ? `<button class="btn-view-receipt" onclick="viewReceipt('${t.txref || t.id}')">View</button>`
+                            : '—';
+                        
+                        return `
+                            <tr>
+                                <td>${date}</td>
+                                <td>${typeBadge}</td>
+                                <td>${details}</td>
+                                <td style="${amountColor}">${amountSign}</td>
+                                <td>${receiptAction}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error("Error fetching transactions:", err);
+                    walletTxBody.innerHTML = '<tr><td colspan="5" class="empty-row">Error loading transactions</td></tr>';
+                });
+        }
+
+        // Stripe URL Check on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('session_id')) {
+                limitModal.classList.add('active');
+                document.getElementById('step-select').classList.remove('active');
+                document.getElementById('step-success').classList.add('active');
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (urlParams.get('canceled')) {
+                alert("Payment was canceled.");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
+        // Receipt Handlers
+        function viewReceipt(txRef) {
+            fetch(`${API_BASE}/api/payment/receipt/${txRef}`)
+            .then(res => {
+                if (!res.ok) throw new Error("Receipt not found");
+                return res.json();
+            })
+            .then(tx => {
+                const date = new Date(tx.timestamp).toLocaleString();
+                receiptContent.textContent = `======================================
+           BYTELOOP NETWORKS
+        DYNAMIC BILLING RECEIPT
+======================================
+TX REF:    ${tx.txRef || 'BL-TXN-N/A'}
+DATE/TIME: ${date}
+STATUS:    COMPLETED
+TYPE:      PREMIUM PLAN UPGRADE
+--------------------------------------
+FROM ACCT: ${tx.fromAccount || 'N/A'}
+SENDER:    +${tx.fromphone || tx.fromPhone || 'N/A'}
+
+TO ACCT:   ${tx.toAccount || 'N/A'} (ByteLoop)
+--------------------------------------
+ITEM DESCRIPTION:
+Upgrade connection data limit by:
+${parseFloat(tx.dataAmount || 0).toFixed(2)} GB Data Quota
+
+TOTAL AMOUNT CHARGED:
+$${parseFloat(tx.paymentAmount || 0).toFixed(2)} USD
+
+======================================
+     Thank you for your business!
+======================================`;
+                receiptModal.classList.add('active');
+            })
+            .catch(err => alert("Error viewing receipt: " + err.message));
+        }
+
+        function closeReceiptModal() {
+            receiptModal.classList.remove('active');
+        }
+
+        function printReceipt() {
+            window.print();
+        }
+
+        // Save Unused Data (Sync Button)
+        syncBtn.addEventListener('click', () => {
+            vaultIcon.classList.add('syncing');
+            syncBtn.disabled = true;
+            syncBtnText.textContent = "Saving unused quota...";
+            
+            fetch(`${API_BASE}/api/vault/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUserId })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(d => { throw new Error(d.error); });
+                return res.json();
+            })
+            .then(data => {
+                vaultIcon.classList.remove('syncing');
+                syncBtn.disabled = false;
+                syncBtnText.textContent = "Save Unused Data";
+                showMessage(`Successfully saved ${formatDataUnits(data.savedData)} to vault!`, "success");
+                fetchDatabaseStats();
+            })
+            .catch(err => {
+                vaultIcon.classList.remove('syncing');
+                syncBtn.disabled = false;
+                syncBtnText.textContent = "Save Unused Data";
+                showMessage(err.message || "Failed to save data.", "error");
+            });
+        });
+
+        // Retrieve Data
+        retrieveBtn.addEventListener('click', () => {
+            const amount = parseFloat(retrieveAmount.value);
+            if (isNaN(amount) || amount <= 0) {
+                showMessage("Enter a valid amount to retrieve.", "error");
+                return;
+            }
+
+            retrieveBtn.disabled = true;
+            fetch(`${API_BASE}/api/vault/retrieve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUserId, amount })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(d => { throw new Error(d.error); });
+                return res.json();
+            })
+            .then(data => {
+                retrieveBtn.disabled = false;
+                retrieveAmount.value = '';
+                showMessage(`Retrieved ${formatDataUnits(data.retrievedAmount)} from vault!`, "success");
+                fetchDatabaseStats();
+            })
+            .catch(err => {
+                retrieveBtn.disabled = false;
+                showMessage(err.message || "Failed to retrieve data.", "error");
+            });
+        });
+
+        // Initialize UI
+        checkAppInternetState();
+        loadPlans();
+        fetchLiveDetails();
+        
+        // Listen to storage events
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'appInternetToggleState') {
+                checkAppInternetState();
+            }
+        });
+        
+        setInterval(checkAppInternetState, 2000);
+        setInterval(fetchLiveDetails, 5000);
+    </script>
+</body>
+</html>
