@@ -283,7 +283,6 @@
         
         let connectedSSID = null;
         let selectedSSID = null;
-        let html5QrcodeScanner = null;
 
         const wifiAssistantToggle = document.getElementById('wifiAssistantToggle');
         if (localStorage.getItem('wifiAssistantState') !== null) {
@@ -405,21 +404,29 @@
             });
         }
 
+        let html5QrCode = null;
+
         // QR Scanner Logic
         function openScanner() {
             document.getElementById('scannerModal').classList.add('active');
             setTimeout(() => {
-                if (!html5QrcodeScanner) {
-                    html5QrcodeScanner = new Html5QrcodeScanner(
-                        "reader",
-                        { fps: 10, qrbox: {width: 250, height: 250} },
-                        false);
-                    html5QrcodeScanner.render((decodedText, decodedResult) => {
-                        console.log(`Scan result: ${decodedText}`);
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("reader");
+                    html5QrCode.start(
+                        { facingMode: "environment" },
+                        { fps: 10, qrbox: { width: 250, height: 250 } },
+                        (decodedText, decodedResult) => {
+                            console.log(`Scan result: ${decodedText}`);
+                            closeScanner();
+                            parseWiFiQR(decodedText);
+                        },
+                        (errorMessage) => {
+                            // ignore background parse errors
+                        }
+                    ).catch(err => {
+                        console.error("Failed to start camera", err);
+                        showToast("Could not access back camera.");
                         closeScanner();
-                        parseWiFiQR(decodedText);
-                    }, (errorMessage) => {
-                        // parse error, ignore
                     });
                 }
             }, 300); // Wait for modal animation to complete
@@ -427,9 +434,11 @@
 
         function closeScanner() {
             document.getElementById('scannerModal').classList.remove('active');
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear().catch(err => console.error(err));
-                html5QrcodeScanner = null;
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                }).catch(err => console.error("Failed to stop camera", err));
             }
         }
 
