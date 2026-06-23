@@ -340,7 +340,8 @@
         }
 
         function fetchStatus() {
-            fetch(`${API_BASE}/api/hotspot/status`)
+            const userId = localStorage.getItem('userId') || '';
+            fetch(`${API_BASE}/api/hotspot/status${userId ? '?userId=' + userId : ''}`)
                 .then(r => r.json())
                 .then(data => {
                     if (!isTransitioning) {

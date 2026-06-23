@@ -431,10 +431,10 @@ if (currentUserId) {
     authScreen.style.display = 'flex';
 }
 
-// Sync connection status from hardware (removed automatic toggling)
+const userId = localStorage.getItem('userId') || '';
 Promise.all([
-    fetch(`${API_BASE}/api/wifi/status`).then(r => r.json()).catch(() => ({ connected: false })),
-    fetch(`${API_BASE}/api/hotspot/status`).then(r => r.json()).catch(() => ({ active: false }))
+    fetch(`${API_BASE}/api/wifi/status${userId ? '?userId=' + userId : ''}`).then(r => r.json()).catch(() => ({ connected: false })),
+    fetch(`${API_BASE}/api/hotspot/status${userId ? '?userId=' + userId : ''}`).then(r => r.json()).catch(() => ({ active: false }))
 ]).then(([wifiData, hotspotData]) => {
     // Only update UI, do not auto-force state = true
     if (currentUserId) {

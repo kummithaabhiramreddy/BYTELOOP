@@ -274,10 +274,26 @@ app.get('/api/wifi/scan', async (req, res) => {
 });
 
 app.get('/api/wifi/status', async (req, res) => {
-    let connected = await getMockState('wifiConnected', null);
+    const userId = req.query.userId;
+    const key = userId ? `wifiConnected_${userId}` : 'wifiConnected';
+    let connected = await getMockState(key, null);
+    
+    let ownerName = null;
+    if (connected) {
+        try {
+            const ownerResult = await db.query('SELECT phoneNumber FROM Users WHERE hotspotNetworkName = $1', [connected]);
+            if (ownerResult.rows.length > 0) {
+                ownerName = ownerResult.rows[0].phonenumber;
+            }
+        } catch (e) {
+            console.error("Error getting wifi status owner info:", e);
+        }
+    }
+
     res.json({
         connected: connected !== null,
         ssid: connected,
+        ownerName: ownerName,
         radioOn: true
     });
 });
@@ -290,13 +306,17 @@ app.post('/api/wifi/connect', async (req, res) => {
     
     // Simulate connection delay
     setTimeout(async () => {
-        await setMockState('wifiConnected', ssid);
+        const key = userId ? `wifiConnected_${userId}` : 'wifiConnected';
+        await setMockState(key, ssid);
 
         // Find if this ssid corresponds to a user's hotspot in the DB
         try {
             const ownerResult = await db.query('SELECT id, phoneNumber FROM Users WHERE hotspotNetworkName = $1', [ssid]);
             if (ownerResult.rows.length > 0) {
                 // Yes, this SSID matches a registered user's hotspot!
+                const owner = ownerResult.rows[0];
+                const ownerId = owner.id;
+                
                 let clientName = 'Connected Device';
                 if (userId) {
                     const clientResult = await db.query('SELECT phoneNumber FROM Users WHERE id = $1', [userId]);
@@ -306,17 +326,19 @@ app.post('/api/wifi/connect', async (req, res) => {
                 }
                 
                 // Add the client to the owner's hotspot client list in the MockState
-                let hotspot = await getMockState('hotspot', { active: true, name: ssid, clients: [] });
+                const ownerKey = `hotspot_${ownerId}`;
+                let hotspot = await getMockState(ownerKey, { active: true, name: ssid, clients: [] });
                 if (!hotspot.clients) hotspot.clients = [];
                 
                 // Avoid duplicates
                 if (!hotspot.clients.some(c => c.name === clientName)) {
                     hotspot.clients.push({
                         name: clientName,
+                        userId: userId,
                         ip: `192.168.137.${Math.floor(Math.random() * 240) + 10}`,
                         signal: 'Connected'
                     });
-                    await setMockState('hotspot', hotspot);
+                    await setMockState(ownerKey, hotspot);
                 }
             }
         } catch (e) {
@@ -327,9 +349,46 @@ app.post('/api/wifi/connect', async (req, res) => {
     }, 1500);
 });
 
+app.post('/api/wifi/disconnect', async (req, res) => {
+    const { userId } = req.body;
+    const key = userId ? `wifiConnected_${userId}` : 'wifiConnected';
+    
+    try {
+        let currentSSID = await getMockState(key, null);
+        if (currentSSID) {
+            const ownerResult = await db.query('SELECT id FROM Users WHERE hotspotNetworkName = $1', [currentSSID]);
+            if (ownerResult.rows.length > 0) {
+                const ownerId = ownerResult.rows[0].id;
+                const ownerKey = `hotspot_${ownerId}`;
+                let hotspot = await getMockState(ownerKey, { active: true, name: currentSSID, clients: [] });
+                
+                let clientName = 'Connected Device';
+                if (userId) {
+                    const clientResult = await db.query('SELECT phoneNumber FROM Users WHERE id = $1', [userId]);
+                    if (clientResult.rows.length > 0) {
+                        clientName = clientResult.rows[0].phonenumber;
+                    }
+                }
+                
+                if (hotspot.clients) {
+                    hotspot.clients = hotspot.clients.filter(c => c.name !== clientName);
+                    await setMockState(ownerKey, hotspot);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error cleaning client from hotspot on manual disconnect:", e);
+    }
+
+    await setMockState(key, null);
+    res.json({ success: true, message: 'Disconnected from Wi-Fi' });
+});
+
 // ─── API Routes: Hotspot ───────────────────────────────────────
 app.get('/api/hotspot/status', async (req, res) => {
-    let hotspot = await getMockState('hotspot', { active: false, name: null, clients: [] });
+    const userId = req.query.userId;
+    const key = userId ? `hotspot_${userId}` : 'hotspot';
+    let hotspot = await getMockState(key, { active: false, name: null, clients: [] });
     if (hotspot.active && hotspot.clients.length === 0) {
         hotspot.clients = [{ name: 'Simulated Device', ip: '192.168.137.10', signal: 'Connected' }];
     } else if (!hotspot.active) {
@@ -347,7 +406,8 @@ app.post('/api/hotspot/start', async (req, res) => {
         return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
     }
 
-    await setMockState('hotspot', { active: true, name: hName, clients: [] });
+    const key = userId ? `hotspot_${userId}` : 'hotspot';
+    await setMockState(key, { active: true, name: hName, clients: [] });
 
     if (userId) {
         try {
@@ -362,7 +422,8 @@ app.post('/api/hotspot/start', async (req, res) => {
 
 app.post('/api/hotspot/stop', async (req, res) => {
     const { userId } = req.body;
-    await setMockState('hotspot', { active: false, name: null, clients: [] });
+    const key = userId ? `hotspot_${userId}` : 'hotspot';
+    await setMockState(key, { active: false, name: null, clients: [] });
 
     if (userId) {
         try {
@@ -375,13 +436,48 @@ app.post('/api/hotspot/stop', async (req, res) => {
     res.json({ success: true, message: 'Simulated hotspot stopped' });
 });
 
+app.post('/api/hotspot/disconnect-client', async (req, res) => {
+    const { clientName, userId } = req.body; // userId is owner's ID
+    if (!userId || !clientName) {
+        return res.status(400).json({ success: false, error: 'Owner userId and clientName are required' });
+    }
+
+    try {
+        const ownerKey = `hotspot_${userId}`;
+        let hotspot = await getMockState(ownerKey, { active: false, name: null, clients: [] });
+        
+        if (hotspot.clients) {
+            const clientIdx = hotspot.clients.findIndex(c => c.name === clientName);
+            if (clientIdx !== -1) {
+                const client = hotspot.clients[clientIdx];
+                const clientUserId = client.userId;
+                
+                // Set client's wifi status to disconnected
+                if (clientUserId) {
+                    await setMockState(`wifiConnected_${clientUserId}`, null);
+                }
+                
+                // Remove client from list
+                hotspot.clients.splice(clientIdx, 1);
+                await setMockState(ownerKey, hotspot);
+            }
+        }
+        res.json({ success: true, message: 'Client disconnected successfully' });
+    } catch (e) {
+        console.error("Failed to disconnect client:", e);
+        res.status(500).json({ success: false, error: 'Failed to disconnect client' });
+    }
+});
+
 // ─── API Routes: System Info ───────────────────────────────────
 app.get('/api/system/info', async (req, res) => {
     const uptime = os.uptime();
     const hours = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
 
-    let connected = await getMockState('wifiConnected', null);
+    const userId = req.query.userId;
+    const key = userId ? `wifiConnected_${userId}` : 'wifiConnected';
+    let connected = await getMockState(key, null);
 
     res.json({
         hostname: os.hostname(),
