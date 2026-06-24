@@ -432,13 +432,38 @@
             }
         }
 
-        @media (max-width: 400px) {
+        @media (max-width: 500px) {
+            body {
+                padding: 0;
+            }
+            .admin-container {
+                padding: 1rem 0.5rem;
+                gap: 1rem;
+            }
             .summary-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 0.75rem;
             }
             .summary-card {
                 padding: 1rem;
+            }
+            .header-action-btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.8rem;
+            }
+            .table-responsive {
+                border-radius: 12px;
+                overflow-x: auto;
+            }
+            table {
+                font-size: 0.75rem;
+            }
+            thead th, tbody td {
+                padding: 0.5rem;
+            }
+            .badge {
+                padding: 3px 6px;
+                font-size: 0.65rem;
             }
         }
 

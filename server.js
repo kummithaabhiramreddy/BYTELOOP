@@ -639,6 +639,16 @@ app.post('/api/vault/save', async (req, res) => {
     }
 });
 
+app.post('/api/vault/sync-device', async (req, res) => {
+    const { userId, amount } = req.body;
+    try {
+        await db.query(`UPDATE Users SET vaultData = vaultData + $1 WHERE id = $2`, [amount, userId]);
+        res.json({ success: true, savedData: amount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/vault/retrieve', async (req, res) => {
     const { userId, amount } = req.body;
     try {

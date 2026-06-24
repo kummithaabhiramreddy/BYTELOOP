@@ -343,6 +343,23 @@
         .profile-card:nth-child(4) { animation-delay: 0.15s; }
         .profile-card:nth-child(5) { animation-delay: 0.2s; }
         .profile-card:nth-child(6) { animation-delay: 0.25s; }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 0;
+            }
+            #app-container {
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .profile-content {
+                padding: 0 1rem 2rem 1rem;
+            }
+            .info-row .info-value {
+                max-width: 50%;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>

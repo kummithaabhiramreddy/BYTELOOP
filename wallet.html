@@ -232,7 +232,17 @@
             gap: 12px;
             margin: 1.25rem 0;
         }
-        @media (max-width: 400px) {
+        @media (max-width: 500px) {
+            body {
+                padding: 0;
+            }
+            #app-container {
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .page-container {
+                padding: 1.5rem 1rem;
+            }
             .plans-grid {
                 grid-template-columns: 1fr;
             }
@@ -528,7 +538,7 @@
             </div>
 
              <div style="display: flex; gap: 12px; margin-bottom: 1rem; width: 100%;">
-                 <button class="neumorph-btn" id="syncBtn" style="flex: 1; margin: 0;">
+                 <button class="neumorph-btn" id="syncBtn" style="flex: 1; margin: 0; background-color: #ff4c4c; color: white;" data-state="off">
                     <i class="ph ph-arrows-clockwise"></i>
                     <span id="syncBtnText">Save Unused Data</span>
                  </button>
@@ -1035,34 +1045,122 @@ $${parseFloat(tx.paymentAmount || 0).toFixed(2)} USD
             window.print();
         }
 
+        let syncState = "off";
+        let syncInterval = null;
+
+        function getDeviceName() {
+            const ua = navigator.userAgent;
+            if (/android/i.test(ua)) {
+                const match = ua.match(/Android.*?; (.*?) Build/);
+                return match ? match[1] : "Android Device";
+            }
+            if (/iPad|iPhone|iPod/.test(ua)) return "iPhone/iPad";
+            if (/Windows/.test(ua)) return "Windows PC";
+            if (/Mac/.test(ua)) return "Mac";
+            return "Mobile Device";
+        }
+
         // Save Unused Data (Sync Button)
         syncBtn.addEventListener('click', () => {
-            vaultIcon.classList.add('syncing');
-            syncBtn.disabled = true;
-            syncBtnText.textContent = "Saving unused quota...";
-            
-            fetch(`${API_BASE}/api/vault/save`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUserId })
-            })
-            .then(res => {
-                if (!res.ok) return res.json().then(d => { throw new Error(d.error); });
-                return res.json();
-            })
-            .then(data => {
-                vaultIcon.classList.remove('syncing');
-                syncBtn.disabled = false;
+            if (syncState === "off") {
+                syncBtn.style.backgroundColor = "#4c8bf5";
+                syncBtnText.textContent = "Scanning device...";
+                syncBtn.disabled = true;
+                vaultIcon.classList.add('syncing');
+                
+                setTimeout(() => {
+                    const deviceName = getDeviceName();
+                    syncBtn.disabled = false;
+                    vaultIcon.classList.remove('syncing');
+                    
+                    const accepted = confirm(`Device detected: ${deviceName}\nDo you want to accept and continuously store unused mobile data from this device?`);
+                    
+                    if (accepted) {
+                        if (storedDataGB >= totalDataGB) {
+                            showMessage("You are already reached your plan limit please update your plan limit then store more data thank you", "error");
+                            syncState = "off";
+                            syncBtn.style.backgroundColor = "#ff4c4c";
+                            syncBtnText.textContent = "Save Unused Data";
+                            return;
+                        }
+
+                        syncBtnText.textContent = "Storing unused quota...";
+                        syncBtn.disabled = true;
+                        vaultIcon.classList.add('syncing');
+                        
+                        // Perform one initial regular save of unused data
+                        fetch(`${API_BASE}/api/vault/save`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: currentUserId })
+                        })
+                        .then(res => {
+                            if (!res.ok) return res.json().then(d => { throw new Error(d.error); });
+                            return res.json();
+                        })
+                        .then(data => {
+                            syncBtn.disabled = false;
+                            syncState = "on";
+                            syncBtnText.textContent = "Data Storing ON";
+                            showMessage(`Successfully saved ${formatDataUnits(data.savedData)} to vault from ${deviceName}! Continuous sync activated.`, "success");
+                            fetchDatabaseStats();
+                            
+                            // Start continuous syncing simulation
+                            syncInterval = setInterval(() => {
+                                if (storedDataGB >= totalDataGB) {
+                                    syncState = "off";
+                                    syncBtn.style.backgroundColor = "#ff4c4c";
+                                    syncBtnText.textContent = "Save Unused Data";
+                                    vaultIcon.classList.remove('syncing');
+                                    clearInterval(syncInterval);
+                                    syncInterval = null;
+                                    showMessage("You are already reached your plan limit please update your plan limit then store more data thank you", "error");
+                                    return;
+                                }
+
+                                // Add between 0.01 and 0.05 GB continuously
+                                const syncAmount = parseFloat((Math.random() * (0.05 - 0.01) + 0.01).toFixed(3));
+                                
+                                fetch(`${API_BASE}/api/vault/sync-device`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ userId: currentUserId, amount: syncAmount })
+                                })
+                                .then(res => res.json())
+                                .then(syncData => {
+                                    if (syncData.success) {
+                                        fetchDatabaseStats(); // Refresh the UI
+                                    }
+                                })
+                                .catch(err => console.error("Continuous sync error:", err));
+                            }, 3000); // 3-second interval
+                            
+                        })
+                        .catch(err => {
+                            vaultIcon.classList.remove('syncing');
+                            syncBtn.disabled = false;
+                            syncState = "off";
+                            syncBtn.style.backgroundColor = "#ff4c4c";
+                            syncBtnText.textContent = "Save Unused Data";
+                            showMessage(err.message || "Failed to save initial data.", "error");
+                        });
+                    } else {
+                        syncState = "off";
+                        syncBtn.style.backgroundColor = "#ff4c4c";
+                        syncBtnText.textContent = "Save Unused Data";
+                    }
+                }, 1500);
+            } else {
+                syncState = "off";
+                syncBtn.style.backgroundColor = "#ff4c4c";
                 syncBtnText.textContent = "Save Unused Data";
-                showMessage(`Successfully saved ${formatDataUnits(data.savedData)} to vault!`, "success");
-                fetchDatabaseStats();
-            })
-            .catch(err => {
                 vaultIcon.classList.remove('syncing');
-                syncBtn.disabled = false;
-                syncBtnText.textContent = "Save Unused Data";
-                showMessage(err.message || "Failed to save data.", "error");
-            });
+                if (syncInterval) {
+                    clearInterval(syncInterval);
+                    syncInterval = null;
+                    showMessage("Continuous data sync stopped.", "info");
+                }
+            }
         });
 
         // Retrieve Data

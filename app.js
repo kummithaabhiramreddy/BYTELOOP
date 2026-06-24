@@ -17,6 +17,7 @@ let userDataRemaining = 10.0; // Track remaining data for depletion check
 // ─── DOM ELEMENTS ───────────────────────────────────────────────
 const authScreen = document.getElementById('authScreen');
 const dashboardScreen = document.getElementById('dashboardScreen');
+const settingsScreen = document.getElementById('settingsScreen');
 const userNameEl = document.getElementById('userName');
 const dataProgressBar = document.getElementById('dataProgressBar');
 const quotaValueEl = document.getElementById('quota-value');
@@ -147,6 +148,7 @@ function logout() {
     currentUserId = null;
     currentUserName = null;
     dashboardScreen.style.display = 'none';
+    if (settingsScreen) settingsScreen.style.display = 'none';
     authScreen.style.display = 'flex';
 }
 
@@ -159,10 +161,21 @@ function showAuthMsg(text, type) {
 
 function showDashboard() {
     authScreen.style.display = 'none';
+    if (settingsScreen) settingsScreen.style.display = 'none';
     dashboardScreen.style.display = 'flex';
     userNameEl.textContent = currentUserName;
     fetchStats();
     updateUI();
+}
+
+function showSettings() {
+    dashboardScreen.style.display = 'none';
+    if (settingsScreen) settingsScreen.style.display = 'flex';
+}
+
+function hideSettings() {
+    if (settingsScreen) settingsScreen.style.display = 'none';
+    dashboardScreen.style.display = 'flex';
 }
 
 // ─── INSTANT WALLET SYNC ────────────────────────────────────────
@@ -207,7 +220,8 @@ async function fetchStats() {
         // Update global tracking
         userDataRemaining = remaining;
 
-        quotaValueEl.textContent = `${formatDataUnits(used)} / ${formatDataUnits(total)}`;
+        const vault = data.vaultData || 0.0;
+        quotaValueEl.textContent = `${formatDataUnits(vault)} / ${formatDataUnits(total)}`;
         quotaUsedEl.textContent = formatDataUnits(used);
         quotaRemainingEl.textContent = formatDataUnits(remaining);
 
@@ -276,8 +290,67 @@ function updateUI() {
     }
 }
 
+const MOCK_APPS_ANDROID = [
+    { id: 101, name: "WhatsApp", appId: "whatsapp://send", iconData: null },
+    { id: 102, name: "Instagram", appId: "instagram://", iconData: null },
+    { id: 103, name: "YouTube", appId: "vnd.youtube://", iconData: null },
+    { id: 104, name: "Facebook", appId: "fb://", iconData: null },
+    { id: 105, name: "Chrome", appId: "googlechrome://", iconData: null },
+    { id: 106, name: "Maps", appId: "google.navigation:q=0,0", iconData: null },
+    { id: 107, name: "Spotify", appId: "spotify://", iconData: null },
+    { id: 108, name: "Twitter", appId: "twitter://", iconData: null },
+    { id: 109, name: "Gmail", appId: "googlegmail://", iconData: null },
+    { id: 110, name: "Snapchat", appId: "snapchat://", iconData: null },
+    { id: 111, name: "Settings", appId: "android-settings://", iconData: null },
+    { id: 112, name: "Play Store", appId: "market://", iconData: null }
+];
+
+const MOCK_APPS_IOS = [
+    { id: 201, name: "Messages", appId: "sms:", iconData: null },
+    { id: 202, name: "FaceTime", appId: "facetime://", iconData: null },
+    { id: 203, name: "Photos", appId: "photos-redirect://", iconData: null },
+    { id: 204, name: "Maps", appId: "maps://", iconData: null },
+    { id: 205, name: "Mail", appId: "mailto:", iconData: null },
+    { id: 206, name: "Weather", appId: "weather://", iconData: null },
+    { id: 207, name: "App Store", appId: "itms-apps://", iconData: null },
+    { id: 208, name: "Safari", appId: "x-web-search://", iconData: null },
+    { id: 209, name: "WhatsApp", appId: "whatsapp://", iconData: null },
+    { id: 210, name: "Instagram", appId: "instagram://", iconData: null },
+    { id: 211, name: "YouTube", appId: "youtube://", iconData: null },
+    { id: 212, name: "Spotify", appId: "spotify://", iconData: null }
+];
+
+function getClientOS() {
+    const userAgent = window.navigator.userAgent || window.navigator.vendor || window.opera;
+    if (/android/i.test(userAgent)) {
+        return "Android";
+    }
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        return "iOS";
+    }
+    return "PC";
+}
+
 function pollApps() {
     if (!state.apps) return;
+
+    const os = getClientOS();
+    
+    if (os === "Android") {
+        allAppsData = MOCK_APPS_ANDROID;
+        statusMessage.style.display = 'none';
+        appGrid.style.display = 'grid';
+        searchContainer.style.display = 'flex';
+        renderApps(allAppsData);
+        return;
+    } else if (os === "iOS") {
+        allAppsData = MOCK_APPS_IOS;
+        statusMessage.style.display = 'none';
+        appGrid.style.display = 'grid';
+        searchContainer.style.display = 'flex';
+        renderApps(allAppsData);
+        return;
+    }
 
     fetch(`${API_BASE}/api/apps`)
         .then(res => {
@@ -373,7 +446,25 @@ async function directLaunchApp(appId, name) {
         }
     }
 
-    // Launch the application
+    const os = getClientOS();
+    
+    if (os === "Android" || os === "iOS") {
+        // Open the app using deep link URL scheme
+        try {
+            // Attempt to trigger the deep link
+            window.location.href = appId;
+            
+            // Wait a brief moment to see if it failed (if page is still active, it might have failed)
+            setTimeout(() => {
+                showToast(`Attempted to open ${name}`, 'success');
+            }, 500);
+        } catch(e) {
+            showToast(`Could not open ${name}. It may not be installed.`, 'error');
+        }
+        return;
+    }
+
+    // Launch the application on PC via server
     fetch(`${API_BASE}/api/apps/launch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
