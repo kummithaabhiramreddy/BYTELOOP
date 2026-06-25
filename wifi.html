@@ -416,7 +416,11 @@
                         el.addEventListener('click', () => {
                             if (isConn) return;
                             selectedSSID = net.ssid;
-                            if (net.secure) {
+                            
+                            let savedNetworks = JSON.parse(localStorage.getItem('savedNetworks') || '{}');
+                            if (savedNetworks[net.ssid]) {
+                                connect(net.ssid, savedNetworks[net.ssid]);
+                            } else if (net.secure) {
                                 document.getElementById('modalSSID').textContent = net.ssid;
                                 document.getElementById('passwordInput').value = '';
                                 document.getElementById('passwordModal').classList.add('active');
@@ -426,6 +430,17 @@
                         });
                         networkList.appendChild(el);
                     });
+                    
+                    // Auto-connect logic
+                    if (!connectedSSID && wifiToggle.checked) {
+                        let savedNetworks = JSON.parse(localStorage.getItem('savedNetworks') || '{}');
+                        for (let net of networks) {
+                            if (savedNetworks[net.ssid]) {
+                                connect(net.ssid, savedNetworks[net.ssid]);
+                                break;
+                            }
+                        }
+                    }
                 });
         }
 
@@ -450,6 +465,14 @@
             .then(data => {
                 if (data.success) {
                     showToast(`Connected to ${ssid}`);
+                    
+                    // Save to known networks
+                    if (password) {
+                        let savedNetworks = JSON.parse(localStorage.getItem('savedNetworks') || '{}');
+                        savedNetworks[ssid] = password;
+                        localStorage.setItem('savedNetworks', JSON.stringify(savedNetworks));
+                    }
+                    
                     if (!wifiToggle.checked) {
                         wifiToggle.checked = true;
                         localStorage.setItem('wifiToggleState', 'true');
@@ -459,6 +482,14 @@
                     fetchStatus();
                     startScan();
                 } else {
+                    // Remove from saved networks if password was incorrect
+                    if (data.error === 'Incorrect password') {
+                        let savedNetworks = JSON.parse(localStorage.getItem('savedNetworks') || '{}');
+                        if (savedNetworks[ssid]) {
+                            delete savedNetworks[ssid];
+                            localStorage.setItem('savedNetworks', JSON.stringify(savedNetworks));
+                        }
+                    }
                     showToast(data.error || 'Failed to connect');
                 }
             });

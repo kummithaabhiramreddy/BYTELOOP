@@ -414,6 +414,7 @@
                         <span class="device-name">${c.name || 'Unknown Device'}</span>
                         <span class="device-ip">${c.ip || ''}</span>
                     </div>
+                    <button class="btn-disconnect-client" onclick="disconnectClient('${c.name}')" style="background: none; border: none; color: #ff3b30; cursor: pointer; padding: 0.5rem;"><i class="ph ph-x-circle" style="font-size: 1.5rem;"></i></button>
                 `;
                 list.appendChild(el);
             });
@@ -516,6 +517,23 @@
                 }, 2000);
             }
         });
+
+        function disconnectClient(clientName) {
+            if(!clientName || clientName === 'undefined') return;
+            fetch(`${API_BASE}/api/hotspot/disconnect-client`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: localStorage.getItem('userId'), clientName })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    fetchStatus();
+                } else {
+                    alert(data.error || 'Failed to disconnect client');
+                }
+            });
+        }
 
         setInterval(fetchStatus, 5000);
         fetchStatus();
