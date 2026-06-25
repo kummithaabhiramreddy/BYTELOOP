@@ -389,9 +389,7 @@ app.get('/api/hotspot/status', async (req, res) => {
     const userId = req.query.userId;
     const key = userId ? `hotspot_${userId}` : 'hotspot';
     let hotspot = await getMockState(key, { active: false, name: null, clients: [] });
-    if (hotspot.active && hotspot.clients.length === 0) {
-        hotspot.clients = [{ name: 'Simulated Device', ip: '192.168.137.10', signal: 'Connected' }];
-    } else if (!hotspot.active) {
+    if (!hotspot.active) {
         hotspot.clients = [];
     }
     res.json(hotspot);

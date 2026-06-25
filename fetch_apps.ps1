@@ -1,5 +1,5 @@
 Add-Type -AssemblyName System.Drawing
-$apps = Get-StartApps | Select-Object -First 40
+$apps = Get-StartApps
 $result = @()
 
 foreach ($app in $apps) {

@@ -215,6 +215,7 @@
                     <i class="ph ph-wifi-high"></i>
                     <div class="conn-ssid" id="connectedSSID">Network Name</div>
                     <div class="conn-status">Connected</div>
+                    <button class="btn-modal btn-cancel" style="margin-top: 0.5rem; padding: 0.5rem 1rem; font-size: 0.85rem; width: auto;" onclick="disconnectWifi()">Disconnect</button>
                 </div>
 
             </div>
@@ -306,6 +307,9 @@
                 networksSection.style.display = 'none';
                 document.getElementById('wifiAssistantCard').style.display = 'none';
                 currentConnEl.classList.remove('active');
+                if (connectedSSID) {
+                    disconnectWifi();
+                }
                 connectedSSID = null;
             }
         });
@@ -320,15 +324,39 @@
         }
 
         function fetchStatus() {
-            fetch(`${API_BASE}/api/wifi/status`)
+            const userId = localStorage.getItem('userId') || '';
+            fetch(`${API_BASE}/api/wifi/status${userId ? '?userId=' + userId : ''}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.connected && data.ssid) {
                         connectedSSID = data.ssid;
                         connectedSSIDEl.textContent = data.ssid;
                         currentConnEl.classList.add('active');
+                    } else {
+                        currentConnEl.classList.remove('active');
+                        connectedSSID = null;
                     }
                 });
+        }
+
+        function disconnectWifi() {
+            showToast("Disconnecting...");
+            fetch(`${API_BASE}/api/wifi/disconnect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: localStorage.getItem('userId') })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast("Disconnected");
+                    connectedSSID = null;
+                    currentConnEl.classList.remove('active');
+                    if (wifiToggle.checked) startScan();
+                } else {
+                    showToast("Failed to disconnect");
+                }
+            });
         }
 
         function startScan() {

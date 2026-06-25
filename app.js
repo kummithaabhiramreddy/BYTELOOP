@@ -237,7 +237,10 @@ async function fetchStats() {
 
         // Check data depletion
         if (remaining <= 0 && state.appInternet) {
-            showToast('Your stored data is completed! Please store more data in your wallet.', 'error');
+            state.appInternet = false;
+            localStorage.setItem('appInternetToggleState', 'false');
+            updateUI();
+            showToast('Your stored data is completed! App Internet disabled. Please store more data in your wallet.', 'error');
         }
     } catch (e) {
         console.error('Error fetching data saver statistics:', e);
@@ -334,24 +337,6 @@ function getClientOS() {
 function pollApps() {
     if (!state.apps) return;
 
-    const os = getClientOS();
-    
-    if (os === "Android") {
-        allAppsData = MOCK_APPS_ANDROID;
-        statusMessage.style.display = 'none';
-        appGrid.style.display = 'grid';
-        searchContainer.style.display = 'flex';
-        renderApps(allAppsData);
-        return;
-    } else if (os === "iOS") {
-        allAppsData = MOCK_APPS_IOS;
-        statusMessage.style.display = 'none';
-        appGrid.style.display = 'grid';
-        searchContainer.style.display = 'flex';
-        renderApps(allAppsData);
-        return;
-    }
-
     fetch(`${API_BASE}/api/apps`)
         .then(res => {
             if (res.status === 202) {
@@ -446,24 +431,6 @@ async function directLaunchApp(appId, name) {
         }
     }
 
-    const os = getClientOS();
-    
-    if (os === "Android" || os === "iOS") {
-        // Open the app using deep link URL scheme
-        try {
-            // Attempt to trigger the deep link
-            window.location.href = appId;
-            
-            // Wait a brief moment to see if it failed (if page is still active, it might have failed)
-            setTimeout(() => {
-                showToast(`Attempted to open ${name}`, 'success');
-            }, 500);
-        } catch(e) {
-            showToast(`Could not open ${name}. It may not be installed.`, 'error');
-        }
-        return;
-    }
-
     // Launch the application on PC via server
     fetch(`${API_BASE}/api/apps/launch`, {
         method: 'POST',
@@ -501,7 +468,37 @@ btnInternet.addEventListener('click', () => {
     updateUI(); 
 });
 btnWifi.addEventListener('click', () => { window.location.href = 'wifi.html'; });
-btnHotspot.addEventListener('click', () => { window.location.href = 'hotspot.html'; });
+btnHotspot.addEventListener('click', (e) => { 
+    const badge = document.getElementById('hotspot-badge');
+    const popup = document.getElementById('hotspot-popup');
+    
+    // Prevent navigation if clicking inside the popup
+    if (popup && (e.target === popup || popup.contains(e.target))) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+    
+    // Toggle popup when clicking the badge
+    if (badge && (e.target === badge || badge.contains(e.target))) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (popup.style.display === 'flex') {
+            popup.style.display = 'none';
+        } else {
+            popup.style.display = 'flex';
+            clearTimeout(window.hotspotPopupTimeout);
+            window.hotspotPopupTimeout = setTimeout(() => {
+                if (popup) popup.style.display = 'none';
+            }, 5000);
+        }
+        return;
+    }
+    
+    // Otherwise, navigate to Hotspot Settings
+    window.location.href = 'hotspot.html'; 
+});
 btnApps.addEventListener('click', () => { state.apps = !state.apps; updateUI(); });
 
 // ─── INITIALIZATION ──────────────────────────────────────────────
@@ -549,12 +546,52 @@ window.addEventListener('pageshow', (e) => {
     if (currentUserId) {
         updateUI();
         fetchStats();
+        fetchHotspotClients();
     }
 });
+
+async function fetchHotspotClients() {
+    if (!currentUserId) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/hotspot/status?userId=${currentUserId}`);
+        const data = await res.json();
+        const badge = document.getElementById('hotspot-badge');
+        if (data.active && data.clients && data.clients.length > 0) {
+            if(badge) {
+                badge.style.display = 'flex';
+                badge.textContent = data.clients.length;
+            }
+            renderHotspotPopupList(data.clients);
+        } else {
+            if(badge) badge.style.display = 'none';
+            renderHotspotPopupList([]);
+        }
+    } catch (e) {
+        console.error('Error fetching hotspot clients:', e);
+    }
+}
+
+function renderHotspotPopupList(clients) {
+    const list = document.getElementById('hotspot-popup-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (clients.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin: 0;">No devices</p>';
+        return;
+    }
+    clients.forEach(c => {
+        list.innerHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-base); padding: 0.5rem; border-radius: 8px; box-shadow: var(--shadow-inset); font-size: 0.85rem;">
+                <span style="font-weight: 600; color: var(--text-main);">${c.name || 'Unknown Device'}</span>
+            </div>
+        `;
+    });
+}
 
 // Auto-refresh stats every 10 seconds for live data
 setInterval(() => {
     if (currentUserId) {
         fetchStats();
+        fetchHotspotClients();
     }
 }, 10000);

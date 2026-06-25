@@ -1,17 +1,17 @@
 const { Pool } = require('pg');
+require('dotenv').config();
 
 const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
-const config = connectionString ? {
+const config = {
     connectionString,
     ssl: { rejectUnauthorized: false }
-} : {
-    user: process.env.PGUSER || 'postgres',
-    host: process.env.PGHOST || 'localhost',
-    database: process.env.PGDATABASE || 'internet_storage',
-    password: process.env.PGPASSWORD || 'admin123',
-    port: process.env.PGPORT || 5432,
 };
+
+if (!connectionString) {
+    console.error("FATAL ERROR: DATABASE_URL is not defined in .env. Project is configured to only use Neon database.");
+    process.exit(1);
+}
 
 const pool = new Pool(config);
 

@@ -86,9 +86,16 @@
                         <div class="btn-icon-wrapper"><i class="ph ph-wifi-high" id="icon-wifi"></i></div>
                         <span class="btn-label">WIFI</span>
                     </button>
-                    <button class="elliptical-btn" id="btn-hotspot">
-                        <div class="btn-icon-wrapper"><i class="ph ph-broadcast" id="icon-hotspot"></i></div>
+                    <button class="elliptical-btn" id="btn-hotspot" style="position: relative;">
+                        <div class="btn-icon-wrapper">
+                            <i class="ph ph-broadcast" id="icon-hotspot"></i>
+                            <div id="hotspot-badge" style="display: none; position: absolute; top: 10px; right: 10px; background: var(--primary); color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 0.8rem; font-weight: bold; align-items: center; justify-content: center;">0</div>
+                        </div>
                         <span class="btn-label">Hotspot</span>
+                        <div id="hotspot-popup" style="display: none; position: absolute; top: -100px; left: 50%; transform: translateX(-50%); background: var(--bg-base); border-radius: 24px; padding: 1rem; box-shadow: var(--shadow-light); z-index: 100; min-width: 200px; flex-direction: column; gap: 0.5rem;">
+                            <h4 style="margin: 0; font-size: 0.9rem; color: var(--text-main); text-align: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.5rem;">Connected Devices</h4>
+                            <div id="hotspot-popup-list" style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                        </div>
                     </button>
                     <button class="elliptical-btn" id="btn-apps">
                         <div class="btn-icon-wrapper"><i class="ph ph-squares-four" id="icon-apps"></i></div>
