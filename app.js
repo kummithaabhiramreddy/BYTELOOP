@@ -396,6 +396,29 @@ function renderApps(appsArray) {
 // ─── DIRECT APP LAUNCH (No Modal) ───────────────────────────────
 // Apps directly connect via App Internet. No mobile internet option.
 async function directLaunchApp(appId, name) {
+    // If Wi-Fi is connected, launch freely without using App Internet Data
+    if (state.wifi && window.lastWifiConnected) {
+        console.log(`Launching: ${name} (${appId}) via Free Wi-Fi`);
+        showToast(`${name} connected via Wi-Fi (Free)`, 'success');
+        
+        // Launch directly via server
+        fetch(`${API_BASE}/api/apps/launch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                showToast(`Failed to launch ${name}: ${data.error}`, 'error');
+            }
+        })
+        .catch(err => {
+            showToast(`Error launching ${name}.`, 'error');
+        });
+        return;
+    }
+
     // Auto-enable App Internet if not already on
     if (!state.appInternet) {
         state.appInternet = true;
@@ -410,26 +433,8 @@ async function directLaunchApp(appId, name) {
     }
 
     console.log(`Launching: ${name} (${appId}) via App Internet`);
-    
-    // Log data consumption from user's stored data
-    if (currentUserId) {
-        try {
-            const res = await fetch(`${API_BASE}/api/usage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUserId, dataUsed: 0.15 })
-            });
-            
-            if (res.ok) {
-                showToast(`${name} connected via App Internet (${formatDataUnits(0.15)} used)`, 'success');
-            }
-            
-            // Refresh stats immediately
-            fetchStats();
-        } catch (e) {
-            console.error('Error logging usage:', e);
-        }
-    }
+    showToast(`${name} launched successfully! (Free Launch)`, 'success');
+
 
     // Launch the application on PC via server
     fetch(`${API_BASE}/api/apps/launch`, {
@@ -525,6 +530,10 @@ Promise.all([
     fetch(`${API_BASE}/api/hotspot/status${userId ? '?userId=' + userId : ''}`).then(r => r.json()).catch(() => ({ active: false }))
 ]).then(([wifiData, hotspotData]) => {
     // Only update UI, do not auto-force state = true
+    const wifiLabel = document.querySelector('#btn-wifi .btn-label');
+    if (wifiLabel) {
+        wifiLabel.textContent = (wifiData.connected && wifiData.ssid) ? wifiData.ssid : 'WIFI';
+    }
     if (currentUserId) {
         updateUI();
     }
@@ -546,6 +555,7 @@ window.addEventListener('pageshow', (e) => {
     if (currentUserId) {
         updateUI();
         fetchStats();
+        fetchDashboardWifiStatus();
         fetchHotspotClients();
     }
 });
@@ -571,6 +581,27 @@ async function fetchHotspotClients() {
     }
 }
 
+async function fetchDashboardWifiStatus() {
+    if (!currentUserId) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/wifi/status?userId=${currentUserId}`);
+        const data = await res.json();
+        const wifiLabel = document.querySelector('#btn-wifi .btn-label');
+        if (wifiLabel) {
+            wifiLabel.textContent = (data.connected && data.ssid) ? data.ssid : 'WIFI';
+        }
+        
+        if (!data.connected && state.wifi && localStorage.getItem('wifiToggleState') === 'true' && window.lastWifiConnected === true) {
+            state.wifi = false;
+            localStorage.setItem('wifiToggleState', 'false');
+            updateUI();
+        }
+        window.lastWifiConnected = data.connected;
+    } catch (e) {
+        console.error('Error fetching wifi status:', e);
+    }
+}
+
 function renderHotspotPopupList(clients) {
     const list = document.getElementById('hotspot-popup-list');
     if (!list) return;
@@ -592,6 +623,7 @@ function renderHotspotPopupList(clients) {
 setInterval(() => {
     if (currentUserId) {
         fetchStats();
+        fetchDashboardWifiStatus();
         fetchHotspotClients();
     }
 }, 10000);

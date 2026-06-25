@@ -332,12 +332,28 @@
                         connectedSSID = data.ssid;
                         connectedSSIDEl.textContent = data.ssid;
                         currentConnEl.classList.add('active');
+                        window.lastWifiConnected = true;
                     } else {
                         currentConnEl.classList.remove('active');
                         connectedSSID = null;
+                        
+                        if (window.lastWifiConnected) {
+                            wifiToggle.checked = false;
+                            localStorage.setItem('wifiToggleState', 'false');
+                            networksSection.style.display = 'none';
+                            document.getElementById('wifiAssistantCard').style.display = 'none';
+                            window.lastWifiConnected = false;
+                            showToast("Network unavailable. Wi-Fi disabled.");
+                        }
                     }
                 });
         }
+        
+        setInterval(() => {
+            if (wifiToggle.checked) {
+                fetchStatus();
+            }
+        }, 5000);
 
         function disconnectWifi() {
             showToast("Disconnecting...");
@@ -424,6 +440,12 @@
             .then(data => {
                 if (data.success) {
                     showToast(`Connected to ${ssid}`);
+                    if (!wifiToggle.checked) {
+                        wifiToggle.checked = true;
+                        localStorage.setItem('wifiToggleState', 'true');
+                        networksSection.style.display = 'block';
+                        document.getElementById('wifiAssistantCard').style.display = 'flex';
+                    }
                     fetchStatus();
                     startScan();
                 } else {
