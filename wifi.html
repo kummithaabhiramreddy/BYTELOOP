@@ -331,6 +331,16 @@
                     if (data.connected && data.ssid) {
                         connectedSSID = data.ssid;
                         connectedSSIDEl.textContent = data.ssid;
+                        
+                        const statusEl = document.querySelector('#currentConnection .conn-status');
+                        if (statusEl) {
+                            if (data.ownerName) {
+                                statusEl.innerHTML = `Connected to <span style="color: var(--primary); font-weight: bold;">${data.ownerName}</span>`;
+                            } else {
+                                statusEl.textContent = 'Connected';
+                            }
+                        }
+                        
                         currentConnEl.classList.add('active');
                         window.lastWifiConnected = true;
                     } else {

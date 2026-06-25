@@ -339,9 +339,9 @@ app.post('/api/wifi/connect', async (req, res) => {
                 
                 let clientName = 'Connected Device';
                 if (userId) {
-                    const clientResult = await db.query('SELECT phoneNumber FROM Users WHERE id = $1', [userId]);
+                    const clientResult = await db.query('SELECT phoneNumber, hotspotNetworkName FROM Users WHERE id = $1', [userId]);
                     if (clientResult.rows.length > 0) {
-                        clientName = clientResult.rows[0].phonenumber;
+                        clientName = clientResult.rows[0].hotspotnetworkname || clientResult.rows[0].phonenumber;
                     }
                 }
                 
