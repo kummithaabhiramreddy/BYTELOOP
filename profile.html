@@ -496,13 +496,13 @@
 
             <!-- Gift Data Card -->
             <div class="profile-card">
-                <div class="card-header"><i class="ph ph-gift"></i> Gift Active Data</div>
+                <div class="card-header"><i class="ph ph-gift"></i> Transfer Data Credits</div>
                 <div class="card-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <p style="font-size: 0.85rem; color: var(--text-muted); text-align: left; line-height: 1.4;">
-                        Transfer your active data quota directly to other linked family members.
+                        Transfer your Data Credits directly to other linked family members or friends.
                     </p>
                     <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <input type="number" id="giftAmount" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem;" placeholder="Amount (GB)" min="0.1" step="0.1">
+                        <input type="number" id="giftAmount" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem;" placeholder="Amount (Credits, e.g. 1000)" min="10" step="10">
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Recipient</label>
@@ -510,7 +510,7 @@
                             <option value="">Select family member</option>
                         </select>
                     </div>
-                    <button class="neumorph-btn" id="giftBtn" style="margin-top: 0.5rem; width: 100%;">Send Gift</button>
+                    <button class="neumorph-btn" id="giftBtn" style="margin-top: 0.5rem; width: 100%;">Send Credits</button>
                     <div id="giftMsg" class="msg" style="display: none; text-align: center;"></div>
                 </div>
             </div>
@@ -771,13 +771,13 @@
             giftMsg.className = 'msg';
             giftMsg.textContent = 'Sending...';
 
-            fetch(`${API_BASE}/api/gift`, {
+            fetch(`${API_BASE}/api/wallet/transfer`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     fromUserId: currentUserId,
                     toUserId: recipientId,
-                    dataAmount: amount
+                    creditAmount: amount
                 })
             })
             .then(res => {
@@ -785,7 +785,7 @@
                 return res.json();
             })
             .then(data => {
-                showGiftMessage(`Gifted ${data.giftedAmount} GB successfully!`, "success");
+                showGiftMessage(`Transferred ${data.transferredCredits} Credits successfully!`, "success");
                 document.getElementById('giftAmount').value = '';
                 document.getElementById('giftRecipient').value = '';
             })

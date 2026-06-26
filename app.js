@@ -221,9 +221,14 @@ async function fetchStats() {
         userDataRemaining = remaining;
 
         const vault = data.vaultData || 0.0;
-        quotaValueEl.textContent = `${formatDataUnits(vault)} / ${formatDataUnits(total)}`;
-        quotaUsedEl.textContent = formatDataUnits(used);
-        quotaRemainingEl.textContent = formatDataUnits(remaining);
+        quotaValueEl.textContent = `${Math.round(vault * 1000).toLocaleString()} Credits`;
+        
+        const quotaDeviceText = document.getElementById('quota-device-text');
+        if (quotaDeviceText) {
+            quotaDeviceText.textContent = `${remaining.toFixed(2)} GB Remaining`;
+        }
+        quotaUsedEl.textContent = `${used.toFixed(2)} GB`;
+        quotaRemainingEl.textContent = `${total.toFixed(2)} GB`;
 
         let percent = (used / total) * 100;
         if (percent > 100) percent = 100;
@@ -233,6 +238,51 @@ async function fetchStats() {
             dataProgressBar.style.background = 'linear-gradient(90deg, #ed8936, #f56565)';
         } else {
             dataProgressBar.style.background = 'linear-gradient(90deg, var(--primary), #667eea)';
+        }
+
+        // Update AI Optimizer display
+        const aiPredictedEl = document.getElementById('ai-predicted');
+        const aiRiskEl = document.getElementById('ai-risk');
+        const aiRecommendationEl = document.getElementById('ai-recommendation');
+        
+        if (aiPredictedEl) {
+            aiPredictedEl.textContent = `${Math.round(data.predictedFutureUsage * 1000).toLocaleString()} Credits`;
+        }
+        
+        const wastageRisk = remaining > 2.0 ? 'High' : remaining > 0.5 ? 'Medium' : 'Low';
+        if (aiRiskEl) {
+            aiRiskEl.textContent = wastageRisk;
+            if (wastageRisk === 'High') {
+                aiRiskEl.style.color = '#ef4444';
+            } else if (wastageRisk === 'Medium') {
+                aiRiskEl.style.color = '#ed8936';
+            } else {
+                aiRiskEl.style.color = '#10b981';
+            }
+        }
+        
+        if (aiRecommendationEl) {
+            if (remaining > 0.1) {
+                aiRecommendationEl.innerHTML = `<i class="ph ph-warning-circle" style="vertical-align: middle; margin-right: 4px;"></i> AI: Convert <strong>${remaining.toFixed(2)} GB</strong> of unused data to <strong>${Math.round(remaining * 1000)} Credits</strong> before it expires!`;
+            } else {
+                aiRecommendationEl.innerHTML = `<i class="ph ph-check-circle" style="vertical-align: middle; margin-right: 4px;"></i> AI: Usage fully optimized. No significant wastage risk detected.`;
+            }
+        }
+
+        // Perform AI Auto-Convert if enabled
+        if (localStorage.getItem('aiAutoConvertState') === 'true' && remaining > 1.0) {
+            console.log("AI Auto-Converting unused data...");
+            fetch(`${API_BASE}/api/vault/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUserId })
+            })
+            .then(res => res.json())
+            .then(() => {
+                showToast(`AI Auto-Converted unused data into Credits!`, 'success');
+                fetchStats();
+            })
+            .catch(e => console.error(e));
         }
 
         // Check data depletion
@@ -627,3 +677,21 @@ setInterval(() => {
         fetchHotspotClients();
     }
 }, 10000);
+
+// AI Auto-Convert Handlers
+function toggleAiAutoConvert() {
+    const checkbox = document.getElementById('ai-auto-toggle');
+    if (checkbox) {
+        localStorage.setItem('aiAutoConvertState', checkbox.checked ? 'true' : 'false');
+        showToast(checkbox.checked ? 'AI Auto-Converter Enabled' : 'AI Auto-Converter Disabled', 'success');
+    }
+}
+window.toggleAiAutoConvert = toggleAiAutoConvert;
+
+// Initialize AI Auto-Convert toggle state
+window.addEventListener('DOMContentLoaded', () => {
+    const checkbox = document.getElementById('ai-auto-toggle');
+    if (checkbox) {
+        checkbox.checked = localStorage.getItem('aiAutoConvertState') === 'true';
+    }
+});

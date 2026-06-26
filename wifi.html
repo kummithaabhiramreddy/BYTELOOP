@@ -406,7 +406,7 @@
                                 <div class="network-icon">${icon}</div>
                                 <div>
                                     <div class="network-name">${net.ssid}</div>
-                                    <div class="network-meta">Signal: ${net.strength || ''}%</div>
+                                    <div class="network-meta">Signal: ${net.strength || ''}% &middot; ${net.price !== undefined ? net.price + ' Credits / GB' : 'Free'}</div>
                                 </div>
                             </div>
                             <div class="network-secure">

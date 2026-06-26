@@ -545,7 +545,7 @@
                             <th>ID</th>
                             <th>Username</th>
                             <th>Data Quota (GB)</th>
-                            <th>Vault Data (GB)</th>
+                            <th>Vault Credits</th>
                             <th>Reward Points</th>
                             <th>Bank Account</th>
                             <th>Bank Balance</th>
@@ -654,7 +654,7 @@
                             <th>ID</th>
                             <th>From</th>
                             <th>To</th>
-                            <th>Data (GB)</th>
+                            <th>Credits</th>
                             <th>Payment</th>
                             <th>Tx Ref</th>
                             <th>Type</th>
@@ -743,7 +743,7 @@
                 setCardValue('statUsers', data.totalUsers);
                 setCardValue('statLogs', data.totalUsageLogs);
                 setCardValue('statData', formatDataUnits(data.totalDataConsumed));
-                setCardValue('statVault', formatDataUnits(data.totalVaultStored));
+                setCardValue('statVault', Math.round((data.totalVaultStored || 0) * 1000).toLocaleString());
                 setCardValue('statRewards', data.totalRewardPoints);
                 setCardValue('statTx', data.totalTransactions);
                 setCardValue('statRevenue', '$' + parseFloat(data.totalRevenue || 0).toFixed(2));
@@ -770,7 +770,7 @@
                         <td>${u.id}</td>
                         <td><strong>${escapeHtml(u.username)}</strong></td>
                         <td>${formatDataUnits(u.totaldataquota || 0)}</td>
-                        <td>${formatDataUnits(u.vaultdata || 0)}</td>
+                        <td>${Math.round((u.vaultdata || 0) * 1000).toLocaleString()}</td>
                         <td>${parseInt(u.rewardpoints || 0).toLocaleString()}</td>
                         <td>${u.bankaccount ? escapeHtml(u.bankaccount) : '—'}</td>
                         <td style="color: var(--primary); font-weight: 600;">$${parseFloat(u.bankbalance || 0).toFixed(2)}</td>

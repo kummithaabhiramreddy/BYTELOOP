@@ -19,6 +19,10 @@ app.use(express.json());
 // Serve root folder static files
 app.use(express.static(__dirname));
 
+// Mount Android APIs
+const androidApi = require('./android_api');
+app.use('/android-api', androidApi);
+
 // ─── Profile File Fallback Paths ─────────────────────────────────
 const PROFILE_PATH = path.join(__dirname, 'profile_data.json');
 
@@ -246,29 +250,30 @@ async function getMockState(key, defaultVal) {
 // ─── API Routes: WiFi ──────────────────────────────────────────
 app.get('/api/wifi/scan', async (req, res) => {
     try {
-        // Fetch all hotspotNetworkNames from the Neon database
-        const result = await db.query('SELECT hotspotNetworkName FROM Users WHERE hotspotNetworkName IS NOT NULL');
+        // Fetch all hotspotNetworkNames from the Neon database along with their prices
+        const result = await db.query('SELECT hotspotNetworkName, hotspotPrice FROM Users WHERE hotspotNetworkName IS NOT NULL');
         let networks = result.rows.map(row => ({ 
             ssid: row.hotspotnetworkname, 
             secure: true, 
-            strength: Math.floor(Math.random() * 40) + 60 
+            strength: Math.floor(Math.random() * 40) + 60,
+            price: row.hotspotprice || 50.0
         }));
         
-        // Add a few dummy networks
-        networks.push({ ssid: 'Starbucks_Guest', secure: false, strength: 80 });
-        networks.push({ ssid: 'Office_5G', secure: true, strength: 95 });
+        // Add a few dummy networks with marketplace pricing
+        networks.push({ ssid: 'Starbucks_Guest', secure: false, strength: 80, price: 0 });
+        networks.push({ ssid: 'Office_5G', secure: true, strength: 95, price: 15 });
         
         // Add our local mock hotspot if active
         let hotspot = await getMockState('hotspot', { active: false, name: null });
         if (hotspot.active && hotspot.name) {
-            networks.push({ ssid: hotspot.name, secure: true, strength: 100 });
+            networks.push({ ssid: hotspot.name, secure: true, strength: 100, price: 50.0 });
         }
         
         res.json(networks);
     } catch (err) {
         console.error("Failed to fetch networks from DB:", err);
         res.json([
-            { ssid: 'Guest WiFi', secure: false, strength: 90 }
+            { ssid: 'Guest WiFi', secure: false, strength: 90, price: 0 }
         ]);
     }
 });
@@ -507,6 +512,48 @@ app.post('/api/hotspot/disconnect-client', async (req, res) => {
     }
 });
 
+// Update hotspot selling rate (credits/GB)
+app.post('/api/hotspot/price', async (req, res) => {
+    const { userId, price } = req.body;
+    if (!userId || price == null) return res.status(400).json({ error: 'userId and price are required' });
+    try {
+        await db.query('UPDATE Users SET hotspotPrice = $1 WHERE id = $2', [parseFloat(price), userId]);
+        res.json({ success: true, price: parseFloat(price) });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Transfer wallet credits between users
+app.post('/api/wallet/transfer', async (req, res) => {
+    const { fromUserId, toUserId, creditAmount } = req.body; // creditAmount in credits (e.g. 500)
+    if (!fromUserId || !toUserId || !creditAmount) {
+        return res.status(400).json({ error: 'fromUserId, toUserId and creditAmount are required' });
+    }
+    const amountGB = parseFloat(creditAmount) / 1000;
+    try {
+        await db.query('BEGIN');
+        const updateSender = await db.query(
+            `UPDATE Users SET vaultData = vaultData - $1 WHERE id = $2 AND vaultData >= $1 RETURNING id`, 
+            [amountGB, fromUserId]
+        );
+        if (updateSender.rowCount === 0) {
+            await db.query('ROLLBACK');
+            return res.status(400).json({ error: 'Insufficient credits in wallet' });
+        }
+        await db.query(`UPDATE Users SET vaultData = vaultData + $1 WHERE id = $2`, [amountGB, toUserId]);
+        await db.query(
+            `INSERT INTO Transactions (fromUserId, toUserId, dataAmount, type) VALUES ($1, $2, $3, 'GIFT')`, 
+            [fromUserId, toUserId, amountGB]
+        );
+        await db.query('COMMIT');
+        res.json({ success: true, transferredCredits: creditAmount });
+    } catch (err) {
+        await db.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ─── API Routes: System Info ───────────────────────────────────
 app.get('/api/system/info', async (req, res) => {
     const uptime = os.uptime();
@@ -618,6 +665,99 @@ app.post('/api/usage', async (req, res) => {
 app.get('/api/stats/:userId', async (req, res) => {
     const userId = req.params.userId;
     try {
+        // Simulated Hotspot Billing
+        const wifiKey = `wifiConnected_${userId}`;
+        const connectedSSID = await getMockState(wifiKey, null);
+        let hostInfo = null;
+        if (connectedSSID) {
+            const hostRes = await db.query(
+                `SELECT id, phoneNumber, vaultData, hotspotPrice FROM Users WHERE hotspotNetworkName = $1 AND id != $2`,
+                [connectedSSID, userId]
+            );
+            if (hostRes.rowCount > 0) {
+                const host = hostRes.rows[0];
+                const pricePerGB = host.hotspotprice || 50.0;
+                
+                // Simulate usage of 0.005 to 0.015 GB
+                const dataUsed = parseFloat((Math.random() * (0.015 - 0.005) + 0.005).toFixed(3));
+                const costInGB = dataUsed; 
+                
+                // Get current client balance
+                const clientRes = await db.query(`SELECT vaultData FROM Users WHERE id = $1`, [userId]);
+                if (clientRes.rowCount > 0) {
+                    const clientVault = clientRes.rows[0].vaultdata || 0;
+                    if (clientVault >= costInGB) {
+                        await db.query('BEGIN');
+                        await db.query(`UPDATE Users SET vaultData = GREATEST(vaultData - $1, 0) WHERE id = $2`, [costInGB, userId]);
+                        await db.query(`UPDATE Users SET vaultData = vaultData + $1 WHERE id = $2`, [costInGB, host.id]);
+                        await db.query(
+                            `INSERT INTO Transactions (fromUserId, toUserId, dataAmount, type, paymentAmount, txRef)
+                             VALUES ($1, $2, $3, 'HOTSPOT_USAGE', 0, $4)`,
+                            [userId, host.id, dataUsed, 'HOTSPOT_BILL']
+                        );
+                        await db.query(`INSERT INTO UsageLogs (userId, dataUsed) VALUES ($1, $2)`, [userId, dataUsed]);
+                        await db.query('COMMIT');
+                        
+                        hostInfo = {
+                            ssid: connectedSSID,
+                            hostPhone: host.phonenumber,
+                            price: pricePerGB,
+                            dataUsed: dataUsed,
+                            creditsBilled: Math.round(dataUsed * 1000)
+                        };
+                    } else {
+                        // Insufficient credits, disconnect client
+                        await setMockState(wifiKey, null);
+                    }
+                }
+            } else {
+                // If it's a paid dummy network (e.g. Office_5G has rate 15 credits/GB)
+                const dummyNetworks = { 'Office_5G': 15, 'Starbucks_Guest': 0 };
+                if (dummyNetworks[connectedSSID] !== undefined) {
+                    const rate = dummyNetworks[connectedSSID];
+                    const dataUsed = parseFloat((Math.random() * (0.015 - 0.005) + 0.005).toFixed(3));
+                    const costInGB = dataUsed;
+                    if (rate > 0) {
+                        const clientRes = await db.query(`SELECT vaultData FROM Users WHERE id = $1`, [userId]);
+                        if (clientRes.rowCount > 0) {
+                            const clientVault = clientRes.rows[0].vaultdata || 0;
+                            if (clientVault >= costInGB) {
+                                await db.query('BEGIN');
+                                await db.query(`UPDATE Users SET vaultData = GREATEST(vaultData - $1, 0) WHERE id = $2`, [costInGB, userId]);
+                                await db.query(
+                                    `INSERT INTO Transactions (fromUserId, toUserId, dataAmount, type, paymentAmount, txRef)
+                                     VALUES ($1, $2, $3, 'WIFI_MARKET', 0, $4)`,
+                                    [userId, null, dataUsed, 'WIFI_BILL']
+                                );
+                                await db.query(`INSERT INTO UsageLogs (userId, dataUsed) VALUES ($1, $2)`, [userId, dataUsed]);
+                                await db.query('COMMIT');
+                                
+                                hostInfo = {
+                                    ssid: connectedSSID,
+                                    hostPhone: 'Public Provider',
+                                    price: rate,
+                                    dataUsed: dataUsed,
+                                    creditsBilled: Math.round(dataUsed * rate)
+                                };
+                            } else {
+                                await setMockState(wifiKey, null);
+                            }
+                        }
+                    } else {
+                        // Free WiFi, just add regular usage logs
+                        await db.query(`INSERT INTO UsageLogs (userId, dataUsed) VALUES ($1, $2)`, [userId, dataUsed]);
+                        hostInfo = {
+                            ssid: connectedSSID,
+                            hostPhone: 'Free WiFi',
+                            price: 0,
+                            dataUsed: dataUsed,
+                            creditsBilled: 0
+                        };
+                    }
+                }
+            }
+        }
+
         const userRes = await db.query(`SELECT * FROM Users WHERE id = $1`, [userId]);
         if (userRes.rowCount === 0) return res.status(404).json({ error: 'User not found' });
         const user = userRes.rows[0];
@@ -641,7 +781,9 @@ app.get('/api/stats/:userId', async (req, res) => {
             bankAccount: user.bankaccount,
             bankBalance: user.bankbalance ? parseFloat(user.bankbalance) : 0.00,
             bankCvv: user.bankcvv,
-            bankAccountEdited: user.bankaccountedited || false
+            bankAccountEdited: user.bankaccountedited || false,
+            hotspotPrice: user.hotspotprice || 50.0,
+            hostInfo: hostInfo
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

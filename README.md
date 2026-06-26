@@ -1,16 +1,32 @@
-# React + Vite
+# ByteLoop - Smart Data Wallet Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ByteLoop is a unified platform that allows users to track unused mobile data, convert it into wallet credits, share credits with friends, and monetize hotspot and Wi-Fi sharing. 
 
-Currently, two official plugins are available:
+## Features
+- Track Data Usage
+- Data Vault & Wallet Credits
+- Hotspot Monetization
+- Peer-to-Peer Credit Sharing
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Future Scope
+*Implementing real-time functionality (not fake/mocked data) across the following domains:*
 
-## React Compiler
+- **Telecom integration:** Direct integration with real telecom providers to fetch live data usage and manage plans.
+- **Data marketplace:** A real-time exchange for buying and selling data allocations.
+- **Family data pools:** Shared quotas for family members with real-time tracking and allocation.
+- **Enterprise bandwidth sharing:** Commercial level network sharing with load-balancing and tiered access.
+- **International roaming credits:** Conversion of local data credits for cross-border roaming usage.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Economic Model & Funding Sources
+*You cannot create money from data alone. Coupons and wallet credits will be backed by sustainable funding sources:*
+- **Ads:** In-app advertisements and sponsored content to subsidize data-to-credit conversions.
+- **Affiliate marketing:** Earning commissions through partner offers available within the wallet.
+- **Referral programs:** Incentivized user growth where new sign-ups bring funding into the ecosystem.
+- **Brand sponsorships:** Direct partnerships with brands to offer exclusive deals and fund data rewards.
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Setup & Running
+Ensure you have the required environment variables in your `.env` file (e.g., `DATABASE_URL` for PostgreSQL).
+```bash
+npm install
+node server.js
+```

@@ -61,18 +61,52 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <!-- Active Data Quota -->
+                <!-- Smart Data Wallet & Quota -->
                 <div class="quota-section">
-                    <div class="quota-header">
-                        <span>Active Data Quota</span>
-                        <span id="quota-value">0 GB / 0 GB</span>
+                    <div class="quota-header" style="margin-bottom: 0.25rem;">
+                        <span style="font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+                            <i class="ph ph-wallet-bold"></i> Cloud Wallet Balance
+                        </span>
+                        <span id="quota-value" style="font-weight: 800; color: var(--text-main);">0 Credits</span>
                     </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="dataProgressBar"></div>
+                    
+                    <div style="border-top: 1px solid rgba(0,0,0,0.05); margin: 0.75rem 0; padding-top: 0.75rem;">
+                        <div class="quota-header" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px;">
+                            <span>Active Device Quota</span>
+                            <span id="quota-device-text" style="color: var(--text-main);">0.00 GB Remaining</span>
+                        </div>
+                        <div class="progress-bar-container" style="height: 10px;">
+                            <div class="progress-bar" id="dataProgressBar"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 6px;">
+                            <span>Used: <span id="quota-used">0.00 GB</span></span>
+                            <span>Total Limit: <span id="quota-remaining">0.00 GB</span></span>
+                        </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
-                        <span>Used: <span id="quota-used">0 GB</span></span>
-                        <span>Remaining: <span id="quota-remaining">0 GB</span></span>
+                </div>
+
+                <!-- AI Data Optimizer -->
+                <div class="quota-section" style="background-color: rgba(66, 153, 225, 0.04); border: 1px dashed rgba(66, 153, 225, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
+                        <i class="ph ph-brain" style="font-size: 1.3rem;"></i>
+                        <span>AI Data Optimizer</span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>Predicted Daily Usage:</span>
+                            <span id="ai-predicted" style="font-weight: 700; color: var(--text-main);">0 Credits</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>Wastage Risk Level:</span>
+                            <span id="ai-risk" style="font-weight: 700; color: #10b981;">Low</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 8px;">
+                            <span>Auto-Convert Unused Data</span>
+                            <input type="checkbox" id="ai-auto-toggle" style="accent-color: var(--primary); cursor: pointer;" onchange="toggleAiAutoConvert()">
+                        </div>
+                    </div>
+                    <div id="ai-recommendation" style="font-size: 0.8rem; background: var(--bg-base); box-shadow: var(--shadow-inset); padding: 8px 12px; border-radius: 12px; color: var(--text-muted); text-align: center;">
+                        Analyzing usage patterns to optimize wallet balance...
                     </div>
                 </div>
 

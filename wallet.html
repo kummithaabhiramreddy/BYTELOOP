@@ -473,26 +473,26 @@
         <div class="page-container">
             <div class="header-top">
                 <a href="index.html" class="icon-btn-back"><i class="ph ph-arrow-left"></i></a>
-                <h1>Data Storage Wallet</h1>
+                <h1>Smart Data Credit Wallet</h1>
             </div>
 
             <!-- Vault Connection Card -->
             <div class="neumorph-card">
                 <div class="vault-status-wrapper">
                     <i class="ph ph-wallet-bold vault-icon" id="vaultIcon"></i>
-                    <h3 id="vaultStatusText">Vault Connected</h3>
+                    <h3 id="vaultStatusText">Wallet Connected</h3>
                     <span class="status-badge" id="statusBadge">Sync Active</span>
                 </div>
 
                 <div class="storage-section">
                     <div class="storage-header">
-                        <span>Vault Stored Data</span>
+                        <span>Cloud Wallet Balance</span>
                         <span id="storagePctText">24%</span>
                     </div>
                     <div class="storage-bar-track">
                         <div class="storage-bar-fill" id="storageBar"></div>
                     </div>
-                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;" id="storageValText">2.4 GB / 10.0 GB</span>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;" id="storageValText">2,400 Credits / 10,000 Credits Quota</span>
                 </div>
             </div>
 
@@ -510,13 +510,13 @@
                 </div>
 
                 <div class="info-row">
-                    <span class="info-label">Data Plan Limit</span>
+                    <span class="info-label">Wallet Credits Limit</span>
                     <span class="info-value" id="dataLimitVal" style="cursor: pointer; color: var(--primary); display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
-                        <span id="dataLimitText">10.0 GB</span> <i class="ph ph-pencil-simple"></i>
+                        <span id="dataLimitText">10,000 Credits</span> <i class="ph ph-pencil-simple"></i>
                     </span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Available Mobile Data</span>
+                    <span class="info-label">Available Device Data</span>
                     <span class="info-value" id="availableDataVal" style="color: #059669; font-weight: 700;">10.00 GB</span>
                 </div>
                 <div class="info-row">
@@ -540,16 +540,16 @@
              <div style="display: flex; gap: 12px; margin-bottom: 1rem; width: 100%;">
                  <button class="neumorph-btn" id="syncBtn" style="flex: 1; margin: 0; background-color: #ff4c4c; color: white;" data-state="off">
                     <i class="ph ph-arrows-clockwise"></i>
-                    <span id="syncBtnText">Save Unused Data</span>
+                    <span id="syncBtnText">Convert Unused Data to Credits</span>
                  </button>
              </div>
 
             <!-- Retrieve Section -->
             <div class="neumorph-card" style="gap: 0.5rem; margin-bottom: 1rem;">
-                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.25rem; text-align: left;">Retrieve from Vault</h3>
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.25rem; text-align: left;">Redeem Credits for Data Pack</h3>
                 <div style="display: flex; gap: 10px; width: 100%;">
-                    <input type="number" id="retrieveAmount" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem;" placeholder="GB to retrieve" min="0.1" step="0.1">
-                    <button class="neumorph-btn" id="retrieveBtn" style="margin-top: 0; padding: 0.75rem 1.5rem; flex-shrink: 0;">Retrieve</button>
+                    <input type="number" id="retrieveAmount" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem;" placeholder="Credits to redeem (e.g. 1000)" min="10" step="10">
+                    <button class="neumorph-btn" id="retrieveBtn" style="margin-top: 0; padding: 0.75rem 1.5rem; flex-shrink: 0;">Redeem Pack</button>
                 </div>
                 <div id="vaultMsg" class="msg" style="display: none; text-align: center;"></div>
             </div>
@@ -557,7 +557,40 @@
             <!-- Explanation Box -->
             <div class="explain-box">
                 <i class="ph ph-info" style="margin-right: 4px; vertical-align: middle;"></i>
-                Use the controls above to save your unused session data quota directly into the rollover vault, or retrieve stored gigabytes back to your active data balance!
+                Convert your unused device mobile data into secure Cloud Wallet Credits, or redeem those credits back into active mobile data packs whenever you need them!
+            </div>
+
+            <!-- How It Works / FAQ Card -->
+            <div class="neumorph-card" style="margin-top: 1rem; text-align: left;">
+                <h3 style="color: var(--text-main); font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph ph-question" style="color: var(--primary);"></i> How It Works & Architecture
+                </h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+                    <div style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.75rem;">
+                        <h4 style="color: var(--text-main); margin-bottom: 4px; font-weight: 600;">1. How does the app access my mobile data?</h4>
+                        <p>The platform relies on local Android service abstractions like <strong>NetworkStatsManager</strong>, <strong>UsageStatsManager</strong>, and <strong>VPN Service APIs</strong>. These track data usage, monitor app consumption, and report remaining balances, but they do not assume direct control over the operator's telecom infrastructure.</p>
+                    </div>
+                    
+                    <div style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.75rem;">
+                        <h4 style="color: var(--text-main); margin-bottom: 4px; font-weight: 600;">2. Where are my Data Credits stored?</h4>
+                        <p>Credits are stored securely in a centralized cloud database server (AWS/GCP PostgreSQL) mapped to your user profile, enabling cross-device synchronization and secure sharing history.</p>
+                    </div>
+                    
+                    <div style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.75rem;">
+                        <h4 style="color: var(--text-main); margin-bottom: 4px; font-weight: 600;">3. How do I use my stored Credits again?</h4>
+                        <p>Our architecture provides three distinct models:
+                            <br>• <strong>Option A:</strong> Convert credits back into active telecom mobile data packs.
+                            <br>• <strong>Option B:</strong> Share bandwidth on the Wi-Fi Marketplace to earn credits, and redeem credits for telecom recharge vouchers.
+                            <br>• <strong>Option C:</strong> Connect to local community-shared hotspots using credits.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h4 style="color: var(--text-main); margin-bottom: 4px; font-weight: 600;">4. Do we need satellites for this platform?</h4>
+                        <p>No. Satellite internet (e.g., Starlink) provides connectivity but does not record or rollover unused data credits. Satellites are not required for this platform's accounting logic.</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Transaction History Card -->
@@ -714,8 +747,8 @@
             const pct = Math.min(Math.round((storedDataGB / totalDataGB) * 100), 100);
             storageBar.style.width = `${pct}%`;
             storagePctText.textContent = `${pct}%`;
-            storageValText.textContent = `${formatDataUnits(storedDataGB)} Vaulted / ${formatDataUnits(totalDataGB)} Quota`;
-            dataLimitText.textContent = formatDataUnits(totalDataGB);
+            storageValText.textContent = `${Math.round(storedDataGB * 1000).toLocaleString()} Credits / ${Math.round(totalDataGB * 1000).toLocaleString()} Credits Quota`;
+            dataLimitText.textContent = `${Math.round(totalDataGB * 1000).toLocaleString()} Credits`;
 
             // Calculate remaining active data quota
             const remainingGB = Math.max(totalDataGB - activeUsedGB, 0);

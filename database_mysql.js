@@ -1,21 +1,19 @@
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const connectionUri = process.env.DATABASE_URL;
+const connectionUri = process.env.MYSQL_URL || 'mysql://root:@localhost:3306/byteloop';
 
-const pool = new Pool({
-    connectionString: connectionUri,
-    ssl: { rejectUnauthorized: false }
-});
+const pool = mysql.createPool(connectionUri);
 
 async function initDB() {
-    const client = await pool.connect();
+    let connection;
     try {
-        console.log('Connected to PostgreSQL database.');
+        connection = await pool.getConnection();
+        console.log('Connected to MySQL database.');
 
-        await client.query(`
+        await connection.query(`
             CREATE TABLE IF NOT EXISTS Users (
-                id SERIAL PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 phoneNumber VARCHAR(20) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 totalDataQuota FLOAT NOT NULL DEFAULT 10.0,
@@ -30,9 +28,9 @@ async function initDB() {
             )
         `);
 
-        await client.query(`
+        await connection.query(`
             CREATE TABLE IF NOT EXISTS UsageLogs (
-                id SERIAL PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 userId INT,
                 dataUsed FLOAT NOT NULL,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -40,9 +38,9 @@ async function initDB() {
             )
         `);
 
-        await client.query(`
+        await connection.query(`
             CREATE TABLE IF NOT EXISTS Transactions (
-                id SERIAL PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 fromUserId INT,
                 toUserId INT,
                 dataAmount FLOAT NOT NULL,
@@ -53,9 +51,9 @@ async function initDB() {
             )
         `);
 
-        await client.query(`
+        await connection.query(`
             CREATE TABLE IF NOT EXISTS Plans (
-                id SERIAL PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) UNIQUE NOT NULL,
                 gb FLOAT NOT NULL,
                 price DECIMAL(10, 2) NOT NULL,
@@ -63,9 +61,9 @@ async function initDB() {
             )
         `);
 
-        const plansCheck = await client.query('SELECT count(*) as count FROM Plans');
-        if (parseInt(plansCheck.rows[0].count) === 0) {
-            await client.query(`
+        const [plansCheck] = await connection.query('SELECT count(*) as count FROM Plans');
+        if (plansCheck[0].count === 0) {
+            await connection.query(`
                 INSERT INTO Plans (name, gb, price, description) VALUES
                 ('Starter Pack', 5.0, 1.00, 'Great for basic browsing and email sync'),
                 ('Value Pack', 15.0, 2.00, 'Perfect for streaming and daily usage'),
@@ -76,11 +74,11 @@ async function initDB() {
         }
 
         // Seed merchant account if it doesn't exist
-        const merchantCheck = await client.query(
+        const [merchantCheck] = await connection.query(
             `SELECT id FROM Users WHERE bankAccount = '41658250083'`
         );
-        if (merchantCheck.rows.length === 0) {
-            await client.query(
+        if (merchantCheck.length === 0) {
+            await connection.query(
                 `INSERT INTO Users (phoneNumber, password, totalDataQuota, vaultData, rewardPoints, bankAccount, bankBalance, bankCvv, bankAccountEdited)
                  VALUES ('0000000000', 'merchant_internal', 0, 0, 0, '41658250083', 0.00, '999', true)`
             );
@@ -88,9 +86,9 @@ async function initDB() {
         }
         
     } catch (err) {
-        console.error('Error initializing PostgreSQL database schema:', err);
+        console.error('Error initializing MySQL database schema:', err);
     } finally {
-        client.release();
+        if (connection) connection.release();
     }
 }
 

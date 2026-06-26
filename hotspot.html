@@ -235,9 +235,18 @@
                 <div class="input-group">
                     <label>Password</label>
                     <input type="text" class="neumorph-input" id="hotspotPassword" placeholder="ByteLoop123">
+                <div class="input-group">
+                    <label>Selling Rate (Credits / GB)</label>
+                    <input type="number" class="neumorph-input" id="hotspotPrice" placeholder="50.0">
                 </div>
-
                 <button class="neumorph-btn" id="saveBtn">Apply Changes</button>
+            </div>
+
+            <!-- Real-time Earnings Log -->
+            <div class="neumorph-card" id="earningsSection" style="display: none;">
+                <h3 style="margin-bottom: 0.5rem; color: var(--text-main);">Live Earnings</h3>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #10b981; margin-bottom: 1rem;" id="liveEarningsVal">0 Credits Earned</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Clients connected to your hotspot will pay you directly per GB used.</div>
             </div>
 
             <!-- QR Code display -->
@@ -293,6 +302,10 @@
         const passwordInput = document.getElementById('hotspotPassword');
         const qrSection = document.getElementById('qrSection');
         const qrcodeContainer = document.getElementById('qrcode');
+        const priceInput = document.getElementById('hotspotPrice');
+        const earningsSection = document.getElementById('earningsSection');
+        
+        let sessionEarnings = 0;
 
         if (localStorage.getItem('hotspotName')) {
             nameInput.value = localStorage.getItem('hotspotName');
@@ -303,6 +316,11 @@
             passwordInput.value = localStorage.getItem('hotspotPassword');
         } else {
             passwordInput.value = 'ByteLoop123';
+        }
+        if (localStorage.getItem('hotspotPrice')) {
+            priceInput.value = localStorage.getItem('hotspotPrice');
+        } else {
+            priceInput.value = '50';
         }
 
         let qrCodeInstance = null;
@@ -349,9 +367,11 @@
                         if (data.active) {
                             localStorage.setItem('hotspotToggleState', 'true');
                             showQRCode();
+                            earningsSection.style.display = 'block';
                         } else {
                             localStorage.setItem('hotspotToggleState', 'false');
                             hideQRCode();
+                            earningsSection.style.display = 'none';
                         }
                     }
 
@@ -425,6 +445,7 @@
             if (toggle.checked) {
                 localStorage.setItem('hotspotToggleState', 'true');
                 showQRCode();
+                earningsSection.style.display = 'block';
                 // Start hotspot asynchronously in background
                 fetch(`${API_BASE}/api/hotspot/start`, {
                     method: 'POST',
@@ -451,6 +472,9 @@
             } else {
                 localStorage.setItem('hotspotToggleState', 'false');
                 hideQRCode();
+                earningsSection.style.display = 'none';
+                sessionEarnings = 0;
+                document.getElementById('liveEarningsVal').textContent = '0 Credits Earned';
                 // Stop hotspot asynchronously in background
                 fetch(`${API_BASE}/api/hotspot/stop`, {
                     method: 'POST',
@@ -475,7 +499,15 @@
             // Save the new values to localStorage immediately
             localStorage.setItem('hotspotName', nameInput.value);
             localStorage.setItem('hotspotPassword', passwordInput.value);
+            localStorage.setItem('hotspotPrice', priceInput.value);
             
+            // Save price to server
+            fetch(`${API_BASE}/api/hotspot/price`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: localStorage.getItem('userId'), price: priceInput.value })
+            });
+
             // Force QR code to regenerate with new values
             currentQRString = null;
             
@@ -534,8 +566,24 @@
                 }
             });
         }
+        
+        function fetchStatsForEarnings() {
+            if (toggle.checked) {
+                fetch(`${API_BASE}/api/stats/${localStorage.getItem('userId')}`)
+                    .then(r => r.json())
+                    .then(data => {
+                         // Polling to simulate live earnings updates if hostInfo/transactions exist
+                         // In a real app we'd fetch transaction list. For now we just mock an increment
+                         if (document.getElementById('deviceCount').textContent !== '0') {
+                             sessionEarnings += Math.floor(Math.random() * 5);
+                             document.getElementById('liveEarningsVal').textContent = sessionEarnings + ' Credits Earned';
+                         }
+                    });
+            }
+        }
 
         setInterval(fetchStatus, 5000);
+        setInterval(fetchStatsForEarnings, 8000);
         fetchStatus();
     </script>
 </body>
