@@ -466,6 +466,49 @@
             color: var(--text-muted);
             font-style: italic;
         }
+        .recharge-plan-item {
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem;
+            border-radius: 10px;
+            background: white;
+            border: 2px solid rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .recharge-plan-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .recharge-plan-item.selected {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.04);
+        }
+        .plan-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        .plan-row-mid {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .plan-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+        .badge-recharge {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
     </style>
 </head>
 <body>
@@ -552,6 +595,43 @@
                     <button class="neumorph-btn" id="retrieveBtn" style="margin-top: 0; padding: 0.75rem 1.5rem; flex-shrink: 0;">Redeem Pack</button>
                 </div>
                 <div id="vaultMsg" class="msg" style="display: none; text-align: center;"></div>
+            </div>
+
+            <!-- Telecom Recharge Section -->
+            <div class="neumorph-card" style="gap: 0.75rem; margin-bottom: 1rem; text-align: left;">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph ph-phone-call" style="color: var(--primary);"></i> Recharge Jio / Airtel Mobile Number
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                    Use your Cloud Wallet Credits to purchase touch phone (smartphone) pre-paid recharge plans. Keypad phones are not supported.
+                </p>
+                
+                <!-- Operator Select Buttons -->
+                <div style="display: flex; gap: 10px; margin-bottom: 0.5rem;">
+                    <button id="opJioBtn" class="neumorph-btn" style="flex: 1; margin: 0; padding: 0.5rem; background: var(--primary); color: white;" onclick="setOperator('jio')">
+                        Jio Prepaid
+                    </button>
+                    <button id="opAirtelBtn" class="neumorph-btn" style="flex: 1; margin: 0; padding: 0.5rem; background: #e0e0e0; color: var(--text-main);" onclick="setOperator('airtel')">
+                        Airtel Prepaid
+                    </button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 0.75rem;">
+                    <label for="rechargePhone" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Mobile Number (10 Digits)</label>
+                    <input type="tel" id="rechargePhone" class="neumorph-input" style="margin-bottom: 0; padding: 0.75rem;" placeholder="e.g. 9876543210" maxlength="10">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 0.75rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Select Smartphone Recharge Plan</label>
+                    <div id="rechargePlansContainer" style="max-height: 220px; overflow-y: auto; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 0.5rem; background: rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <button class="neumorph-btn" id="rechargeSubmitBtn" style="margin-top: 0.5rem; padding: 0.75rem; width: 100%; font-weight: bold; background: #10b981; color: white;" onclick="processRecharge()">
+                    Recharge Now
+                </button>
+                <div id="rechargeMsg" class="msg" style="display: none; text-align: center;"></div>
             </div>
 
             <!-- Explanation Box -->
@@ -672,6 +752,141 @@
 
     <script>
         const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '3000' ? 'http://localhost:3000' : '';
+        
+        // Recharge Plans Database
+        const JIO_PLANS = [
+            { name: "Daily Value Pack", price: 299, dailyData: "1.5 GB/day", validity: 28, description: "Unlimited voice calls, 100 SMS/day, Jio apps subscription" },
+            { name: "Super Saver Pack", price: 666, dailyData: "1.5 GB/day", validity: 84, description: "High-value long term pack with unlimited calling & SMS" },
+            { name: "Unlimited Data Plus", price: 749, dailyData: "2 GB/day", validity: 90, description: "Extra daily data quota for video streaming & downloads" },
+            { name: "Ultimate 5G Pack", price: 999, dailyData: "3 GB/day", validity: 84, description: "True Unlimited 5G data inclusion, high-speed 4G data, premium Jio access" },
+            { name: "Annual Power Pack", price: 2999, dailyData: "2.5 GB/day", validity: 365, description: "Full year hassle-free subscription, unlimited voice & high-speed data" },
+            { name: "Data Add-on Boost", price: 120, dailyData: "15 GB total", validity: 30, description: "Instantly add high-speed data to your existing plan validity" },
+            { name: "Data Add-on Max", price: 300, dailyData: "50 GB total", validity: 30, description: "Ultimate data top-up for hot-spotting and large downloads" }
+        ];
+
+        const AIRTEL_PLANS = [
+            { name: "Monthly Smart Pack", price: 319, dailyData: "2 GB/day", validity: 28, description: "Unlimited Local/STD calls, 100 SMS/day, Wynk Music subscription" },
+            { name: "Super Validity Pack", price: 579, dailyData: "1.5 GB/day", validity: 56, description: "Highly cost-effective pack with moderate daily data limit" },
+            { name: "Airtel Value Pack", price: 779, dailyData: "1.5 GB/day", validity: 90, description: "Long term validity pack with unlimited calling & Wynk Music" },
+            { name: "Unlimited 5G Plus", price: 839, dailyData: "2 GB/day", validity: 84, description: "True Unlimited 5G in 5G network areas, 100 SMS/day" },
+            { name: "Annual Megapack", price: 3599, dailyData: "2 GB/day", validity: 365, description: "365 days validity, premium Airtel Thanks benefits, unlimited calling" },
+            { name: "Airtel Booster", price: 148, dailyData: "20 GB total", validity: 30, description: "High speed data addon for your active prepaid connection" },
+            { name: "Airtel Booster Max", price: 361, dailyData: "65 GB total", validity: 30, description: "Mega data addon for your active prepaid connection" }
+        ];
+
+        let selectedOperator = 'jio';
+        let selectedRechargePlan = null;
+
+        window.setOperator = function(op) {
+            selectedOperator = op;
+            const jioBtn = document.getElementById('opJioBtn');
+            const airtelBtn = document.getElementById('opAirtelBtn');
+            if (op === 'jio') {
+                jioBtn.style.background = 'var(--primary)';
+                jioBtn.style.color = 'white';
+                airtelBtn.style.background = '#e0e0e0';
+                airtelBtn.style.color = 'var(--text-main)';
+            } else {
+                airtelBtn.style.background = 'var(--primary)';
+                airtelBtn.style.color = 'white';
+                jioBtn.style.background = '#e0e0e0';
+                jioBtn.style.color = 'var(--text-main)';
+            }
+            renderRechargePlans();
+        };
+
+        window.renderRechargePlans = function() {
+            const container = document.getElementById('rechargePlansContainer');
+            const plans = selectedOperator === 'jio' ? JIO_PLANS : AIRTEL_PLANS;
+            container.innerHTML = '';
+            
+            plans.forEach((p, idx) => {
+                const isSelected = selectedRechargePlan && selectedRechargePlan.name === p.name && selectedRechargePlan.price === p.price;
+                if (idx === 0 && (!selectedRechargePlan || !plans.some(x => x.name === selectedRechargePlan.name && x.price === selectedRechargePlan.price))) {
+                    selectedRechargePlan = p;
+                }
+                
+                const item = document.createElement('div');
+                item.className = `recharge-plan-item ${isSelected || (idx === 0 && selectedRechargePlan === p) ? 'selected' : ''}`;
+                item.innerHTML = `
+                    <div class="plan-row-top">
+                        <span>${p.name}</span>
+                        <span style="color: var(--primary);">${p.price} Credits</span>
+                    </div>
+                    <div class="plan-row-mid">
+                        <span>Data: ${p.dailyData}</span>
+                        <span>Validity: ${p.validity} Days</span>
+                    </div>
+                    <div class="plan-desc">${p.description}</div>
+                `;
+                item.onclick = () => {
+                    selectedRechargePlan = p;
+                    const items = container.querySelectorAll('.recharge-plan-item');
+                    items.forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                };
+                container.appendChild(item);
+            });
+        };
+
+        window.processRecharge = function() {
+            const phoneInput = document.getElementById('rechargePhone');
+            const rechargeMsg = document.getElementById('rechargeMsg');
+            const submitBtn = document.getElementById('rechargeSubmitBtn');
+            const phoneNumber = phoneInput.value.trim();
+
+            if (!phoneNumber || phoneNumber.length !== 10 || !/^\d+$/.test(phoneNumber)) {
+                rechargeMsg.style.display = 'block';
+                rechargeMsg.className = 'msg error';
+                rechargeMsg.textContent = 'Please enter a valid 10-digit mobile number.';
+                return;
+            }
+
+            if (!selectedRechargePlan) {
+                rechargeMsg.style.display = 'block';
+                rechargeMsg.className = 'msg error';
+                rechargeMsg.textContent = 'Please select a recharge plan.';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing Recharge...';
+            rechargeMsg.style.display = 'none';
+
+            fetch(`${API_BASE}/api/recharge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: currentUserId,
+                    phoneNumber: phoneNumber,
+                    operator: selectedOperator,
+                    creditsCost: selectedRechargePlan.price,
+                    planName: selectedRechargePlan.name,
+                    dailyData: selectedRechargePlan.dailyData,
+                    validity: selectedRechargePlan.validity
+                })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(d => { throw new Error(d.error); });
+                return res.json();
+            })
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Recharge Now';
+                phoneInput.value = '';
+                
+                showMessage(`Recharge of ${selectedRechargePlan.price} Credits on +91 ${phoneNumber} successful!`, "success");
+                fetchDatabaseStats();
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Recharge Now';
+                rechargeMsg.style.display = 'block';
+                rechargeMsg.className = 'msg error';
+                rechargeMsg.textContent = err.message || 'Recharge failed. Please try again.';
+            });
+        };
+
         
         // Session Check
         const currentUserId = localStorage.getItem('userId');
@@ -989,6 +1204,16 @@
                             details = `Direct Deposit`;
                             amountSign = `+$${parseFloat(t.paymentAmount || 0).toFixed(2)}`;
                             amountColor = 'color: #059669; font-weight: 700;';
+                        } else if (t.type === 'RECHARGE') {
+                            typeBadge = '<span class="badge-type badge-recharge">Recharge</span>';
+                            const parts = (t.txref || '').split('-');
+                            const operator = parts[1] || 'JIO';
+                            const phone = parts[2] || 'Number';
+                            const creditsCost = parts[3] || '0';
+                            details = `${operator} Mobile (+91 ${phone})`;
+                            amountSign = `-${creditsCost} Credits`;
+                            amountColor = 'color: #dc2626; font-weight: 700;';
+                            hasReceipt = true;
                         } else {
                             typeBadge = `<span class="badge-type badge-other">${t.type}</span>`;
                             details = `Data amount: ${t.dataamount} GB`;
@@ -1041,7 +1266,41 @@
             })
             .then(tx => {
                 const date = new Date(tx.timestamp).toLocaleString();
-                receiptContent.textContent = `======================================
+                if (tx.type === 'RECHARGE') {
+                    const parts = (tx.txRef || '').split('-');
+                    const operator = parts[1] || 'JIO';
+                    const phone = parts[2] || 'Number';
+                    const creditsCost = parts[3] || '0';
+                    const dailyData = parts[4] || 'N/A';
+                    const validity = parts[5] || '0';
+                    
+                    receiptContent.textContent = `======================================
+           BYTELOOP NETWORKS
+        TELECOM RECHARGE RECEIPT
+======================================
+TX REF:    ${tx.txRef || 'BL-TXN-N/A'}
+DATE/TIME: ${date}
+STATUS:    SUCCESS
+OPERATOR:  ${operator} (Prepaid Smartphone)
+PHONE NO:  +91 ${phone}
+--------------------------------------
+ITEM DESCRIPTION:
+Prepaid High-Speed Touch Plan
+Data Quota:  ${dailyData}
+Validity:    ${validity} Days
+Voice Calls: Unlimited (Local/STD)
+SMS:         100 SMS/Day
+Device compatibility: Smartphone only
+--------------------------------------
+CREDITS DEDUCTED:
+${creditsCost} Credits
+(Equivalent: ${parseFloat(tx.dataAmount || 0).toFixed(3)} GB Vault Data)
+
+======================================
+     Thank you for using ByteLoop!
+======================================`;
+                } else {
+                    receiptContent.textContent = `======================================
            BYTELOOP NETWORKS
         DYNAMIC BILLING RECEIPT
 ======================================
@@ -1063,8 +1322,9 @@ TOTAL AMOUNT CHARGED:
 $${parseFloat(tx.paymentAmount || 0).toFixed(2)} USD
 
 ======================================
-     Thank you for your business!
+      Thank you for your business!
 ======================================`;
+                }
                 receiptModal.classList.add('active');
             })
             .catch(err => alert("Error viewing receipt: " + err.message));
@@ -1230,6 +1490,7 @@ $${parseFloat(tx.paymentAmount || 0).toFixed(2)} USD
         checkAppInternetState();
         loadPlans();
         fetchLiveDetails();
+        renderRechargePlans();
         
         // Listen to storage events
         window.addEventListener('storage', (e) => {

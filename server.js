@@ -879,6 +879,61 @@ app.post('/api/gift', async (req, res) => {
     }
 });
 
+app.post('/api/recharge', async (req, res) => {
+    const { userId, phoneNumber, operator, creditsCost, planName, dailyData, validity } = req.body;
+    try {
+        if (!userId || !phoneNumber || !operator || !creditsCost || !planName) {
+            return res.status(400).json({ error: 'Missing required recharge fields' });
+        }
+        // Validate phoneNumber (10 digits)
+        const phoneClean = phoneNumber.replace(/[^0-9]/g, '');
+        if (phoneClean.length !== 10) {
+            return res.status(400).json({ error: 'Phone number must be a 10-digit mobile number' });
+        }
+        
+        await db.query('BEGIN');
+        const userRes = await db.query(`SELECT vaultdata FROM Users WHERE id = $1`, [userId]);
+        if (userRes.rowCount === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const vaultData = userRes.rows[0].vaultdata || 0;
+        const deductionGB = creditsCost / 1000;
+        if (vaultData < deductionGB) {
+            await db.query('ROLLBACK');
+            return res.status(400).json({ error: `Insufficient Credits. You need ${creditsCost} Credits (Current: ${Math.round(vaultData * 1000)} Credits).` });
+        }
+        
+        // Deduct vaultData
+        await db.query(
+            `UPDATE Users SET vaultData = GREATEST(vaultData - $1, 0) WHERE id = $2`,
+            [deductionGB, userId]
+        );
+        
+        // Find merchant account ID
+        const merchantRes = await db.query(`SELECT id FROM Users WHERE bankAccount = '41658250083'`);
+        let merchantId = merchantRes.rowCount > 0 ? merchantRes.rows[0].id : null;
+        
+        // Construct txRef: REC-[OPERATOR]-[PHONE]-[PRICE]-[DAILY_DATA]-[VALIDITY]
+        const txRef = `REC-${operator.toUpperCase()}-${phoneClean}-${creditsCost}-${dailyData.replace(/\s+/g, '')}-${validity}`;
+        
+        // Insert Transaction
+        await db.query(
+            `INSERT INTO Transactions (fromUserId, toUserId, dataAmount, type, paymentAmount, txRef)
+             VALUES ($1, $2, $3, 'RECHARGE', $4, $5)`,
+            [userId, merchantId, deductionGB, 0, txRef]
+        );
+        
+        await db.query('COMMIT');
+        res.json({ success: true, creditsCost, newBalance: Math.round((vaultData - deductionGB) * 1000) });
+    } catch (err) {
+        await db.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 // ─── API Routes: Bank Account Edit ─────────────────────────────
 app.post('/api/bank/update-account', async (req, res) => {
     const { userId, bankAccount, bankCvv } = req.body;
